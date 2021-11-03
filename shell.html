@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+  
+<!-- Mirrored from www.nodelabs.org/shell.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 04 Sep 2017 18:01:54 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=utf-8" /><!-- /Added by HTTrack -->
+<head>
+    <title>Node.js Shell - Node Labs</title>
+    <link href="css/post.css" rel="stylesheet" type="text/css"/>
+    <link href="css/pygments.css" rel="stylesheet" type="text/css"/>
+    <link href='http://fonts.googleapis.com/css?family=Droid+Sans:400,700|Droid+Sans+Mono' rel='stylesheet' type='text/css' />
+
+    <script src="../ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src="../cdn.jsdelivr.net/jquery.cookie/1.3.1/jquery.cookie.js"></script>
+    <script src="../nodelabs.herokuapp.com/socket.io/socket.io.html"></script>
+    <script src="js/unlock.js"></script>
+    <script type="text/javascript">
+
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','../www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-35011668-1', 'nodelabs.org');
+      ga('require', 'linkid', 'linkid.html');
+      ga('send', 'pageview');
+
+    </script>
+  </head>
+  <body>
+
+    <div id="header">
+      <a href="index.html" title="Take me home!"><img src="css/img/logotype_dark.png" /></a>
+    </div>
+
+    <h1 id="a-nodejs-shell">Node.js Shell</h1>
+
+<p>В данной лабораторной работе мы разработаем простую оболочку (программу принимающую команды). Рассмотрим взаимодействие с файловой системой и сетью и изучим некоторые полезные функции JavaScript.</p>
+
+<ul>
+  <li><a href="#working_with_standard_input">Работа со стандартным вводом</a></li>
+  <li><a href="#implementing_a_print_working_directory_command">Внедрение команд вывода рабочего каталога</a></li>
+  <li><a href="#interacting_with_the_file_system_reading_a_directory">Взаимодейтсвие с файловой системой: чтение каталога</a></li>
+  <li><a href="#interacting_with_http_downloading_a_file">Взаимодействие с HTTP: загрузка файла</a></li>
+</ul>
+
+<h1 id="working_with_standard_input">Работа со стандартным вводом</h1>
+
+<p>Команды будут передаваться нашей оболочке, через стандартный ввод. По умолчанию, у Node.js поток стандартного ввода не активирован. Первым делом, мы подключим стандартный ввод и выведем то, что считаем.</p>
+
+<p>Создадим новый файл <code>shell.js</code> в новом каталоге и добавим в него следующее:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="nx">process</span><span class="p">.</span><span class="nx">stdin</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">input</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">input</span><span class="p">);</span>
+<span class="p">});</span></code></pre></div>
+
+<p>Перед тем как пойти дальше, давайте поэксперементируем с предыдущей программой. Для этого запустите файл:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>node shell.js</code></pre></div>
+
+<p>Введите что-нибудь и нажмите Enter. Обратите внимание, что ввод в строке буфферизирован (данные отправляются в Node.js каждый раз, когда вы нажимаете Enter). Для завершения процесса ввода нажмите <code>CTRL+C</code>.</p>
+
+<p>Вывод программы будет выглядеть примерно так:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="nx">foo</span>
+<span class="o">&lt;</span><span class="nx">Buffer</span> <span class="mi">61</span> <span class="mi">73</span> <span class="mi">64</span> <span class="mi">0</span><span class="nx">a</span><span class="o">&gt;</span>
+<span class="nx">bar</span>
+<span class="o">&lt;</span><span class="nx">Buffer</span> <span class="mi">62</span> <span class="mi">61</span> <span class="mi">72</span> <span class="mi">0</span><span class="nx">a</span><span class="o">&gt;</span></code></pre></div>
+
+<p>Вы можете заметить, что выводится объект типа <code>Buffer</code>. Это потому, что <code>input</code> переменная, принята в нашу функцию <code>function (input) { ... }</code>, в которой обратная связь не содержит строковое значение вашего ввода напрямую.</p>
+
+<p>Стоит отметить, что буфер существует полностью за пределами пространства памяти JavaScript (<code>Buffer</code> - объект внутри C++ Node.js). Взаимодействие с буфером будет перемещать данные между нативом (C++) и JavaScript. Для примера, вызов <code>input.toString()</code> создаст новую строку JavaScript содержащую все данные из <code>Buffer</code>. Необязательный параметр кодировки может быть указана как первый аргумент функции <code>toString</code> (для примера, <code>input.toString('utf8')</code>).</p>
+
+<p>Так как мы работаем с относительно короткими строками, то давайте попробуем опрадиться к объекту буфера <code>input.toString()</code>. Вот так выглдит ваша программа сейчас:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="nx">process</span><span class="p">.</span><span class="nx">stdin</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">input</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">input</span><span class="p">.</span><span class="nx">toString</span><span class="p">());</span>
+<span class="p">});</span></code></pre></div>
+
+<p>Теперь запуск оболочки и ввод любого значения приведет к ожидаемому результату, с новым символом строки на конце.</p>
+
+<p>Следующим шагом будет сокращение и считывание введеной строки. Команды в нашей оболочке примут такую форму:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nb">command</span> <span class="o">[</span>args...<span class="o">]</span></code></pre></div>
+
+<p>Мы можем использовать удобное регулярное выражение для разделения аргументов из команды: <code>/(\w+)(.*)/</code>. Мы можем считать аргументы, разделив их по символу пробела.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="nx">process</span><span class="p">.</span><span class="nx">stdin</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">input</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">matches</span> <span class="o">=</span> <span class="nx">input</span><span class="p">.</span><span class="nx">toString</span><span class="p">().</span><span class="nx">match</span><span class="p">(</span><span class="sr">/(\w+)(.*)/</span><span class="p">);</span>
+  <span class="kd">var</span> <span class="nx">command</span> <span class="o">=</span> <span class="nx">matches</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="nx">toLowerCase</span><span class="p">();</span>
+  <span class="kd">var</span> <span class="nx">args</span> <span class="o">=</span> <span class="nx">matches</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="nx">trim</span><span class="p">().</span><span class="nx">split</span><span class="p">(</span><span class="sr">/\s+/</span><span class="p">);</span>
+<span class="p">});</span></code></pre></div>
+
+<h3 id="a-side-note">Примечание</h3>
+<p>Результатом выполнения кода <code>'some string'.split(/\s+/)</code> будет массив <code>['some', 'string']</code>.</p>
+
+<p>Данный пример можно переписать по другому <code>'some string'.split(' ')</code>, при условии, что не учитываются другие типы непробельных символов или несколько символов пробела. Для примера:</p>
+
+<p><code>'some&nbsp;&nbsp;string'.split(' ')</code> приведет к созданию массива <code>['some', '', 'string']</code>.</p>
+
+<p>Попробуйте проверить результат вышеуказанного кода, подбирая значения <code>command</code> и <code>args</code>. Добавьте больше логики (логической проверки), чтобы сделать данный код усточивей к неверному вводу. Это первое упражнение для вас. По выполнению задания, представьте его прподавателю.</p>
+
+<h2 id="implementing_a_print_working_directory_command">Внедрение команд вывода рабочего каталога</h2>
+
+<p><code>pwd</code> является простой командой для вывода текущего рабочего каталога. Давайте реализуем его в нашей оболочке.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">commands</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="s1">&#39;pwd&#39;</span><span class="o">:</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">process</span><span class="p">.</span><span class="nx">cwd</span><span class="p">());</span>
+  <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="nx">process</span><span class="p">.</span><span class="nx">stdin</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">input</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">matches</span> <span class="o">=</span> <span class="nx">input</span><span class="p">.</span><span class="nx">toString</span><span class="p">().</span><span class="nx">match</span><span class="p">(</span><span class="sr">/(\w+)(.*)/</span><span class="p">);</span>
+  <span class="kd">var</span> <span class="nx">command</span> <span class="o">=</span> <span class="nx">matches</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="nx">toLowerCase</span><span class="p">();</span>
+  <span class="kd">var</span> <span class="nx">args</span> <span class="o">=</span> <span class="nx">matches</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="nx">trim</span><span class="p">().</span><span class="nx">split</span><span class="p">(</span><span class="sr">/\s+/</span><span class="p">);</span>
+
+  <span class="nx">commands</span><span class="p">[</span><span class="nx">command</span><span class="p">](</span><span class="nx">args</span><span class="p">);</span>
+<span class="p">});</span></code></pre></div>
+
+<p>Чтобы прояснить, что происходит выше, вот пример вывода выполнения регулярного выражения в Node.js REPL. Выполним <code>cmd_name arg1 arg2</code>.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="o">&gt;</span> <span class="kd">var</span> <span class="nx">input</span> <span class="o">=</span> <span class="s1">&#39;cmd_name arg1 arg2&#39;</span>
+<span class="s1">&#39;cmd_name arg1 arg2&#39;</span>
+<span class="o">&gt;</span> <span class="kd">var</span> <span class="nx">matches</span> <span class="o">=</span> <span class="nx">input</span><span class="p">.</span><span class="nx">match</span><span class="p">(</span><span class="sr">/(\w+)(.*)/</span><span class="p">)</span>
+<span class="o">&gt;</span> <span class="nx">matches</span>
+<span class="p">[</span> <span class="s1">&#39;cmd_name arg1 arg2&#39;</span><span class="p">,</span>        <span class="c1">// matches[0]</span>
+  <span class="s1">&#39;cmd_name&#39;</span><span class="p">,</span>                  <span class="c1">// matches[1]</span>
+  <span class="s1">&#39; arg1 arg2&#39;</span><span class="p">,</span>                <span class="c1">// matches[2]</span>
+  <span class="nx">index</span><span class="o">:</span> <span class="mi">0</span><span class="p">,</span>                    <span class="c1">// matches[3]</span>
+  <span class="nx">input</span><span class="o">:</span> <span class="s1">&#39;cmd_name arg1 arg2&#39;</span><span class="p">]</span> <span class="c1">// matches[4]</span></code></pre></div>
+
+  <p>Мы обращаемся к элементу массива <code>matches[1]</code> потому что это первая группа регулярного выражения (группы указаны в скобках). Если вы не знакомы с регулярными выражениями, то можете почитать здесь: <a href="http://www.regular-expressions.info/">http://regular-expressions.info</a> или уточнить у преподавателя.</p>
+
+<p>Теперь попробуйте в действии свою оболочку!</p>
+
+<p>Запустите оболочку с помощью команды <code>node</code> и выполните только одну команду:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>node shell.js
+<span class="nb">pwd</span>
+/users/you/simple-shell/</code></pre></div>
+
+<h2 id="interacting_with_the_file_system_reading_a_directory">Взаимодейтсвие с файловой системой: чтение каталога</h2>
+
+<p>Команда <code>ls [directory]</code> выводит содержимое каталога. Если аргумент не указан, он выведет содержимое текущего рабочего каталога.</p>
+
+<p>Во-первых, мы импортируем модуль <code>fs</code> в начале файла. Модуль <code>fs</code> - это базовый модуль Node.js для работы с файловой системой.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">fs</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;fs&#39;</span><span class="p">);</span></code></pre></div>
+
+<p>Чтобы реализовать команду <code>ls</code>, добавьте новое свойство в наш объект с именем 'ls':</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">commands</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="s1">&#39;pwd&#39;</span><span class="o">:</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">process</span><span class="p">.</span><span class="nx">cwd</span><span class="p">());</span>
+  <span class="p">},</span> <span class="c1">// &lt;----------------------- не забудьте эту запятую!</span>
+  <span class="s1">&#39;ls&#39;</span><span class="o">:</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">args</span><span class="p">)</span> <span class="p">{</span> <span class="c1">//     Новое свойство добавлено здесь.</span>
+    <span class="nx">fs</span><span class="p">.</span><span class="nx">readdir</span><span class="p">(</span><span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">||</span> <span class="nx">process</span><span class="p">.</span><span class="nx">cwd</span><span class="p">(),</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">entries</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">entries</span><span class="p">.</span><span class="nx">forEach</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">e</span><span class="p">);</span>
+      <span class="p">});</span>
+    <span class="p">});</span>
+  <span class="p">}</span>
+<span class="p">};</span></code></pre></div>
+
+<p>Давайте рассмотрим конструкцию <code>args[0] || process.cwd()</code>:</p>
+
+<p>В отличие от многих других язвыков, JavaScript'у все-равно, если вы попытаетесь обратиться к индексу за пределами массива. Если элемента не существует, то будет возвращен <code>undefined</code>. Поскольку <code>undefined</code> считается пустышкой, используя <code>x || y</code> синтасис проверит существование <code>x</code> и если это ложно (не существует), то будет проверять <code>y</code>. Это простой шаблон для установки значения по умолчанию.</p>
+
+<p>Для доступа к файловой системе существует множество других команд. Попробуйте <a href="http://nodejs.org/api/fs.html"> ознакомиться с документацией</a> и испробовать другие команды, которые заинтересовали вас.</p>
+
+<p>Вот так выглядит ваша итоговая программа:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">fs</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;fs&#39;</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">commands</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="s1">&#39;pwd&#39;</span><span class="o">:</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">process</span><span class="p">.</span><span class="nx">cwd</span><span class="p">());</span>
+  <span class="p">},</span>
+  <span class="s1">&#39;ls&#39;</span><span class="o">:</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">args</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">fs</span><span class="p">.</span><span class="nx">readdir</span><span class="p">(</span><span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">||</span> <span class="nx">process</span><span class="p">.</span><span class="nx">cwd</span><span class="p">(),</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">entries</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">entries</span><span class="p">.</span><span class="nx">forEach</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">e</span><span class="p">);</span>
+      <span class="p">});</span>
+    <span class="p">});</span>
+  <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="nx">process</span><span class="p">.</span><span class="nx">stdin</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">input</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">matches</span> <span class="o">=</span> <span class="nx">input</span><span class="p">.</span><span class="nx">toString</span><span class="p">().</span><span class="nx">match</span><span class="p">(</span><span class="sr">/(\w+)(.*)/</span><span class="p">);</span>
+  <span class="kd">var</span> <span class="nx">command</span> <span class="o">=</span> <span class="nx">matches</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="nx">toLowerCase</span><span class="p">();</span>
+  <span class="kd">var</span> <span class="nx">args</span> <span class="o">=</span> <span class="nx">matches</span><span class="p">[</span><span class="mi">2</span><span class="p">].</span><span class="nx">trim</span><span class="p">().</span><span class="nx">split</span><span class="p">(</span><span class="sr">/\s+/</span><span class="p">);</span>
+
+  <span class="nx">commands</span><span class="p">[</span><span class="nx">command</span><span class="p">](</span><span class="nx">args</span><span class="p">);</span>
+<span class="p">});</span></code></pre></div>
+
+<p>Объект команд может выглядить слегка страшно, когда мы всталяем столько скобок. Вместо этого мы можем определить командный объект так:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">commands</span> <span class="o">=</span> <span class="p">{};</span>
+
+<span class="nx">commands</span><span class="p">[</span><span class="s1">&#39;pwd&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">process</span><span class="p">.</span><span class="nx">cwd</span><span class="p">());</span>
+<span class="p">};</span>
+
+<span class="nx">commands</span><span class="p">[</span><span class="s1">&#39;ls&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">args</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">fs</span><span class="p">.</span><span class="nx">readdir</span><span class="p">(</span><span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">||</span> <span class="nx">process</span><span class="p">.</span><span class="nx">cwd</span><span class="p">(),</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">entries</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">entries</span><span class="p">.</span><span class="nx">forEach</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">e</span><span class="p">);</span>
+    <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">};</span></code></pre></div>
+
+<p>В этом примере мы определяем контейнерный объект <code>commands</code> и присваиваем анонимные функции свойтвами этого объекта. Основное отличие от предыдущих способов заключается в том, что определения функций не являются частью инициализатора объекта (не задаются при создании самого объекта). Эти два подхода работают одинаково.</p>
+
+<h2 id="interacting_with_http_downloading_a_file">Взаимодействие с HTTP: загрузка файла</h2>
+
+<p>Аналогично, модулю <code>fs</code>, ядро Node.js содержит модуль <code>http</code> который может использоваться в качестве HTTP-клиента или сервера. В следующей лабораторной работе вы попробуете создать HTTP-сервер, но сейчас, мы сфокусируемся на реализации простой команды <code>wget</code> для загрузки файлов.</p>
+
+<p>Импортируйте модуль <code>http</code> выше, рядом с модулем <code>fs</code>:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">http</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;http&#39;</span><span class="p">);</span></code></pre></div>
+
+<p>Теперь мы воспользуемся <code>http.get(url, callback)</code> для создания HTTP GET запроса и загрузки результата в файловую систему.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">commands</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="s1">&#39;pwd&#39;</span><span class="o">:</span> <span class="p">...</span> <span class="p">,</span> <span class="c1">// опущено для краткости</span>
+  <span class="s1">&#39;ls&#39;</span><span class="o">:</span> <span class="p">...</span> <span class="p">,</span>  <span class="c1">// опущено для краткости</span>
+  <span class="s1">&#39;wget&#39;</span><span class="o">:</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">args</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">url</span> <span class="o">=</span> <span class="nx">args</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+    <span class="kd">var</span> <span class="nx">file</span> <span class="o">=</span> <span class="nx">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">||</span> <span class="s1">&#39;download&#39;</span><span class="p">;</span>
+
+    <span class="nx">http</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">url</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+      <span class="kd">var</span> <span class="nx">writeStream</span> <span class="o">=</span> <span class="nx">fs</span><span class="p">.</span><span class="nx">createWriteStream</span><span class="p">(</span><span class="nx">file</span><span class="p">);</span>
+      <span class="nx">res</span><span class="p">.</span><span class="nx">pipe</span><span class="p">(</span><span class="nx">writeStream</span><span class="p">);</span>
+
+      <span class="nx">res</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">url</span> <span class="o">+</span> <span class="s1">&#39; downloaded to file \&#39;&#39;</span> <span class="o">+</span> <span class="nx">file</span> <span class="o">+</span> <span class="s1">&#39;\&#39;&#39;</span><span class="p">);</span>
+      <span class="p">});</span>
+    <span class="p">});</span>
+  <span class="p">}</span>
+<span class="p">};</span></code></pre></div>
+
+<p>Теперь, чтобы проверить работоспособность, попробуем запустить следующее: (очень важно не забывать <code>http://</code>)</p>
+
+<p><code>
+node shell.js
+wget http://google.com
+</code></p>
+
+<p>Вышеупомянутая команда загрузит содержимое домашней страницы Google.</p>
+
+<p>Давайте поговорим о том, что же происходит во время выполнения метода <code>http.get</code>.</p>
+
+<p>Во-первых, создается <a href="http://nodejs.org/api/stream.html#stream_class_stream_writable">записываемый поток</a> для нашей файловой системы, используя <a href="http://nodejs.org/api/fs.html#fs_fs_createwritestream_path_options">fs.createWriteStream</a>, с параметром <code>file</code> (второй параметр не обязателен и использует <code>'download'</code> по умолчанию). Данный код создаст или перезапишет файл.</p>
+
+<p>Следующее конструкция -  <code>res.pipe(writeStream);</code> содержит <code>res</code> (response) объект, который не является полным HTTP-ответом. Поскольку ответ от сервера может быть большим по объему, то Node.js отдает базовый ответ, после этого связь уже будет установлена. На данный момент у нас уже будет доступ к полному набору HTTP-заголовков и стуатусу ответа от сервера, но мы пока еще не имеем доступа непосредственно к данным из ответа.</p>
+
+<p>Данные отклика передаются, как и стандартный поток ввода, который мы открыли для чтения команд с терминала. Объект <code>res</code> инициирует события  <code>res.on('data')</code> и <code>res.on('end')</code>,которые могут быть напрямую переданы в наш записываемый поток. После этого начнется сохранение данных в файловой системе.</p>
+
+<p>Если вы запутались, то рассмотрите <a href="http://nodejs.org/api/http.html">руководство по HTTP-молулю</a>.</p>
+
+
+    <div id="next">
+      
+        <div class="continue">
+          <a href="http.html">
+            <!-- Please don't just skip through these, actually do the labs! -->
+            Так держать! Переходим к следующей лабораторной работе.
+            <span>Cоздание HTTP-сервера</span>
+          </a>
+        </div>
+      
+    </div>
+    <div id="footer">
+      <p>Labs created by <a href="https://twitter.com/joeandaverde">@joeandaverde</a></p>
+      <p>Учебный материал переведен <a href="https://t.me/Rat_Z">@Rat_Z</a> и <a href="https://t.me/Alex_Ebenrode">@Alex_Ebenrode</a></p>
+    </div>
+  </body>
+
+<!-- Mirrored from www.nodelabs.org/shell.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 04 Sep 2017 18:01:55 GMT -->
+</html>

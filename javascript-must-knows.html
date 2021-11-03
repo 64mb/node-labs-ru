@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+  
+<!-- Mirrored from www.nodelabs.org/javascript-must-knows.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 04 Sep 2017 18:01:57 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=utf-8" /><!-- /Added by HTTrack -->
+<head>
+    <title>JavaScript must-knows - Node Labs</title>
+    <link href="css/post.css" rel="stylesheet" type="text/css"/>
+    <link href="css/pygments.css" rel="stylesheet" type="text/css"/>
+    <link href='http://fonts.googleapis.com/css?family=Droid+Sans:400,700|Droid+Sans+Mono' rel='stylesheet' type='text/css' />
+
+    <script src="../ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src="../cdn.jsdelivr.net/jquery.cookie/1.3.1/jquery.cookie.js"></script>
+    <script src="../nodelabs.herokuapp.com/socket.io/socket.io.html"></script>
+    <script src="js/unlock.js"></script>
+    <script type="text/javascript">
+
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','../www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-35011668-1', 'nodelabs.org');
+      ga('require', 'linkid', 'linkid.html');
+      ga('send', 'pageview');
+
+    </script>
+  </head>
+  <body>
+
+    <div id="header">
+      <a href="index.html" title="Take me home!"><img src="css/img/logotype_dark.png" /></a>
+    </div>
+
+    <h1 id="javascript-must-knows">Обязательный JavaScript</h1>
+
+<p>JavaScript - это язык, с которым знакомы многие разработчики, но не все его понимают достаточно глубоко. Язык поддается новым программистам отчасти потому, что имеет простой синтаксис. Много фундаментальных понятий и функция языка могут быть пересмотрены с простого процедурного подхода. Цель этой лабы - дать вам лучшее представление о некоторых основных концепциях и важных языковых возможностях JavaScript.</p>
+
+<h2 id="what-is-this">Что такое <code>this</code>?</h2>
+
+<p>Посмотрите на этот фрагмент и обратите особое внимание на использовние ключего слова <code>this</code>.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">obj</span> <span class="o">=</span> <span class="p">{</span>
+   <span class="nx">doSomething</span><span class="o">:</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+      <span class="k">this</span><span class="p">.</span><span class="nx">a</span> <span class="o">=</span> <span class="s2">&quot;bob&quot;</span><span class="p">;</span>
+
+      <span class="kd">function</span> <span class="nx">doAnotherThing</span> <span class="p">()</span> <span class="p">{</span>
+         <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Name: &quot;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">a</span><span class="p">);</span>
+      <span class="p">};</span>
+
+      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Name: &quot;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">a</span><span class="p">);</span>
+      <span class="nx">doAnotherThing</span><span class="p">();</span>
+   <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="c1">//Что здесь напечатано?</span>
+<span class="nx">obj</span><span class="p">.</span><span class="nx">doSomething</span><span class="p">();</span></code></pre></div>
+
+<p>Те, кто не знаком с обработкой <code>this</code>, могут подумать, что вызов <code>obj.doSomething</code> будет выводить следующее (предполагая, что приведенный выше фрагмент сохраняется в файле с именем <code>this.js</code>) :</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">&gt; node this.js
+Name: bob
+Name: bob</code></pre></div>
+
+<p>Это очень распространенная ошибка. Что выводится здесь на самом деле:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">&gt; node this.js
+Name: bob
+Name: undefined</code></pre></div>
+
+<p>Вот еще один пример, после которого мы объясним, что происходит.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">Adder</span> <span class="p">(</span><span class="nx">a</span><span class="p">)</span> <span class="p">{</span>
+   <span class="k">this</span><span class="p">.</span><span class="nx">a</span> <span class="o">=</span> <span class="nx">a</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="nx">Adder</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">addAsync</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">b</span><span class="p">)</span> <span class="p">{</span>
+   <span class="nx">setTimeout</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">a</span> <span class="o">+</span> <span class="nx">b</span><span class="p">);</span>
+   <span class="p">},</span> <span class="mi">10</span><span class="p">);</span>
+<span class="p">};</span>
+
+<span class="kd">var</span> <span class="nx">r</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Adder</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+<span class="nx">r</span><span class="p">.</span><span class="nx">addAsync</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span></code></pre></div>
+
+<p>Этот пример предполагает добавление двух чисел вместе с разницей 10мс. Что будет выводом из этого примера? Некоторые могут подумать, что выведется 15, т.е. результат 5 + 10. Правильный ответ - <code>NaN</code>. Почему? Ответ лежит в значении <code>this</code>.</p>
+
+<p>Если вы покинете эту лабу, то я надеюсь, что вы не будете больше писать баги с <code>this</code>.</p>
+
+<p>Значение <code>this</code> - это объект, который определяет функцию. Внутренние функции или вызовы функций, которые не являются частью оъекта, будут иметь объект по умолчанию установленный для <code>this</code>. Объект по умолчанию в браузере это <code>window</code> и в Node.js - <code>global</code>.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">obj</span> <span class="o">=</span> <span class="p">{</span> <span class="nx">a</span><span class="o">:</span> <span class="s2">&quot;Example&quot;</span> <span class="p">};</span>
+
+<span class="kd">var</span> <span class="nx">printer</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+   <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
+   <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">a</span><span class="p">);</span>
+<span class="p">};</span>
+
+<span class="nx">obj</span><span class="p">.</span><span class="nx">p</span> <span class="o">=</span> <span class="nx">printer</span><span class="p">;</span>
+
+<span class="nx">printer</span><span class="p">()</span> <span class="c1">// =&gt; undefined</span>
+
+<span class="nx">obj</span><span class="p">.</span><span class="nx">p</span><span class="p">()</span> <span class="c1">// =&gt; Example</span></code></pre></div>
+
+<p>Обратите внимание, как значение вызова <code>printer</code>, не прикрепленного к объекту, было <code>undefined</code>. Однажды мы установили свойство p для функции printer и вызвали его, вы увидите, что теперь он относится к опредленному объекту. Когда объект создан из конструктора функций с использованием ключевого слова, новый оюхект устанавливается через <code>this</code>. Для примера:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">ctor</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">a</span><span class="p">)</span> <span class="p">{</span>
+   <span class="k">this</span><span class="p">.</span><span class="nx">a</span> <span class="o">=</span> <span class="nx">a</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="nx">ctor</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">print</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+   <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">a</span><span class="p">);</span>
+<span class="p">};</span>
+
+<span class="kd">var</span> <span class="nx">o1</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ctor</span><span class="p">(</span><span class="s1">&#39;test1&#39;</span><span class="p">);</span>
+<span class="nx">o1</span><span class="p">.</span><span class="nx">print</span><span class="p">();</span> <span class="c1">// =&gt; test1</span>
+
+<span class="kd">var</span> <span class="nx">o2</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ctor</span><span class="p">(</span><span class="s1">&#39;test2&#39;</span><span class="p">);</span>
+<span class="nx">o2</span><span class="p">.</span><span class="nx">print</span><span class="p">();</span> <span class="c1">// =&gt; test2</span></code></pre></div>
+
+<p>Так мы помотрели на поведение JavaScript при обращении к ключевому слову <code>this</code>. Значение<code>this</code> можно контролировать в функции вызова с помощью нескольких методов, доступных на Function.prototype <code>apply</code>, <code>call</code>, и <code>bind</code>. Каждый из методов доступен для модификации значения, когда функция вызвана. Первые две опции (apply and call) вызывают функцию мгновенно, тогда как третий (bind) обеспечивает новую функцию границей <code>this</code>. Значение <code>this</code> - первый агругемент в каждом методе. Вот пример:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">obj</span> <span class="o">=</span> <span class="p">{</span> <span class="nx">a</span><span class="o">:</span> <span class="s2">&quot;Example&quot;</span> <span class="p">};</span>
+
+<span class="c1">//Заметьте, он не определяется как объект</span>
+<span class="kd">var</span> <span class="nx">printer</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+   <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">a</span><span class="p">);</span>
+<span class="p">};</span>
+
+<span class="kd">var</span> <span class="nx">newPrinter</span> <span class="o">=</span> <span class="nx">printer</span><span class="p">.</span><span class="nx">bind</span><span class="p">(</span><span class="nx">obj</span><span class="p">);</span> <span class="c1">//Вызывает не мгновенно</span>
+
+<span class="nx">newPrinter</span><span class="p">();</span>       <span class="c1">// =&gt; &quot;Пример&quot;</span>
+<span class="nx">printer</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="nx">obj</span><span class="p">);</span> <span class="c1">// =&gt; &quot;Пример&quot;</span>
+<span class="nx">printer</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">obj</span><span class="p">);</span>  <span class="c1">// =&gt; &quot;Пример&quot;</span></code></pre></div>
+
+<p>Различие между <code>apply</code> и <code>call</code> в том, что <code>apply</code> позволяет вызывать функцию с аргументами в виде массива; <code>call</code> требует задания точно определенных параметров.</p>
+
+<h1 id="var">Var</h1>
+
+<p>Ключевое слово <code>var</code> используется для определения переменных. К сожалению, JavaScript не требует использования этого ключевого слова при определении переменных. Забывая оставить ключевое слово var, можно загрязнить глобальный объект ненужными свойствами. Он также может создавать незаметные баги. Взгляните на следующий пример. Что здесь выводится?</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">doStuff</span><span class="p">()</span> <span class="p">{</span>
+   <span class="k">for</span> <span class="p">(</span><span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">i</span><span class="p">);</span>
+   <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kd">function</span> <span class="nx">example</span><span class="p">()</span> <span class="p">{</span>
+   <span class="k">for</span> <span class="p">(</span><span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">doStuff</span><span class="p">();</span>
+   <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="nx">example</span><span class="p">();</span></code></pre></div>
+
+<p>На первый взгляд похоже, что он вывел числа от 0 до  5 - 5 раз. Увы, это не так; вместо этого он выдает номер 0 - 5 только единожды! В чем проблема? Тот факт, что в этом примере исключается использование ключевого слова var. Чтобы исправить это, мы должны объявить переменные управления циклом внутри функции. Исправление приведенного выше примера выглядит так (обратите внимание на использование var):</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">doStuff</span><span class="p">()</span> <span class="p">{</span>
+   <span class="kd">var</span> <span class="nx">i</span><span class="p">;</span>
+   <span class="k">for</span> <span class="p">(</span><span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">i</span><span class="p">);</span>
+   <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kd">function</span> <span class="nx">example</span><span class="p">()</span> <span class="p">{</span>
+   <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">doStuff</span><span class="p">();</span>
+   <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="nx">example</span><span class="p">();</span></code></pre></div>
+
+<p>Использование строгого режима JavaScript не позволит вам определять свойства глобального объекта. Есть и другие преимущества использования строгого режима, но это мой любимый. Строгий режим применяется в контексте выполнения, а не во всей виртуальной машине JavaScript. Чтобы включить строгий режим, просто введите строку <code>"use strict";</code> в верхней части текста. Вот пример использования строгого режима только для одной функции.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">strictFunction</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+  <span class="s2">&quot;use strict&quot;</span><span class="p">;</span>
+  <span class="nx">x</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="c1">// =&gt; Выдает ошибку из-за строгого режима!</span>
+<span class="p">};</span>
+
+<span class="kd">var</span> <span class="nx">notSoStrictFunction</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+   <span class="nx">a</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span> <span class="c1">// Все еще назначает глобальный объект, потому что &quot;use strict&quot; не применяется к этому контексту выполнения. Ошибка не выбрасывается.</span>
+<span class="p">};</span>
+
+<span class="nx">strictFunction</span><span class="p">();</span> <span class="c1">//выдает ошибку, потому что x не определен</span>
+<span class="nx">notSoStrictFunction</span><span class="p">();</span> <span class="c1">// Нет проблем, определяющих a на глобальном объекте</span></code></pre></div>
+
+<h1 id="use--over-">Используем <code>===</code> вместо <code>==</code></h1>
+
+<p>Настоятельно рекомендуется всегда использовать <code>===</code> и <code>!==</code> (читать как строгое (нет) равенство) операции сравнения. Разница между <code>===</code> и <code>==</code> состоит в том, что первое обеспечивает соответствие типов объектов, поэтому строка никогда не может равняться числу. В то время как <code>==</code> вернет true для <code>1 == "1"</code>.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="c1">// Рассмотрите возможность ввода из поля ввода. Это будет строка.</span>
+<span class="kd">var</span> <span class="nx">input</span> <span class="o">=</span> <span class="s2">&quot;10&quot;</span><span class="p">;</span>
+
+<span class="c1">// Сравним строку &quot;10&quot; с числом 10. Потому что == число принуждается к строке.</span>
+<span class="k">if</span> <span class="p">(</span><span class="nx">input</span> <span class="o">==</span> <span class="mi">10</span><span class="p">)</span> <span class="p">{</span>
+   <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">input</span> <span class="o">*</span> <span class="mi">5</span><span class="p">);</span>
+   <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">input</span> <span class="o">+</span> <span class="mi">5</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="nx">input</span> <span class="o">===</span> <span class="mi">10</span><span class="p">)</span> <span class="p">{</span>
+   <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;this will not be reached&#39;</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">if</span> <span class="p">((</span><span class="k">typeof</span> <span class="nx">input</span> <span class="o">==</span> <span class="k">typeof</span> <span class="mi">10</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="p">(</span><span class="nx">input</span> <span class="o">==</span> <span class="mi">10</span><span class="p">))</span> <span class="p">{</span>
+   <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;this is essentially the same as ===&#39;</span><span class="p">);</span>
+<span class="p">}</span></code></pre></div>
+
+<p>Иногда можно использовать двойное равенство, но имейте в виду, что перед выполнением сревнениея объекты будут принудительно приведены к общему типу.</p>
+
+
+    <div id="next">
+      
+        <div class="continue">
+          <a href="streams.html">
+            <!-- Please don't just skip through these, actually do the labs! -->
+            Так держать! Продолжение в следующей лабе.
+            <span>Потоки</span>
+          </a>
+        </div>
+      
+    </div>
+    <div id="footer">
+        <p>Labs created by <a href="https://twitter.com/joeandaverde">@joeandaverde</a></p>
+        <p>Учебный материал переведен <a href="https://t.me/Rat_Z">@Rat_Z</a> и <a href="https://t.me/Alex_Ebenrode">@Alex_Ebenrode</a></p>
+    </div>
+  </body>
+
+<!-- Mirrored from www.nodelabs.org/javascript-must-knows.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 04 Sep 2017 18:01:57 GMT -->
+</html>

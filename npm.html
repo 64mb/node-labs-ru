@@ -1,0 +1,172 @@
+    <!DOCTYPE html>
+<html>
+  
+<!-- Mirrored from www.nodelabs.org/npm.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 04 Sep 2017 18:01:56 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=utf-8" /><!-- /Added by HTTrack -->
+<head>
+    <title>Using and Creating Modules - Node Labs</title>
+    <link href="css/post.css" rel="stylesheet" type="text/css"/>
+    <link href="css/pygments.css" rel="stylesheet" type="text/css"/>
+    <link href='http://fonts.googleapis.com/css?family=Droid+Sans:400,700|Droid+Sans+Mono' rel='stylesheet' type='text/css' />
+
+    <script src="../ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src="../cdn.jsdelivr.net/jquery.cookie/1.3.1/jquery.cookie.js"></script>
+    <script src="../nodelabs.herokuapp.com/socket.io/socket.io.html"></script>
+    <script src="js/unlock.js"></script>
+    <script type="text/javascript">
+
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','../www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-35011668-1', 'nodelabs.org');
+      ga('require', 'linkid', 'linkid.html');
+      ga('send', 'pageview');
+
+    </script>
+  </head>
+  <body>
+
+    <div id="header">
+      <a href="index.html" title="Take me home!"><img src="css/img/logotype_dark.png" /></a>
+    </div>
+
+    <h1 id="using-and-creating-modules">Создание и использование модулей</h1>
+
+<p>В последних лабораторных работах вы использовали <code>require()</code> для импорта базовых модулей <code>fs</code> и <code>http</code>. Теперь давайте посмотрим как работает <code>require</code> и создадим собственный модуль.</p>
+
+<ul>
+  <li><a href="#how_do_modules_work">Как работают модули?</a></li>
+  <li><a href="#create_and_require_a_module">Создание и загрузка модуля</a></li>
+  <li><a href="#require_a_json_file">Загрузка JSON файла</a></li>
+  <li><a href="#require_a_core_module">Загрузка базовых модулей</a></li>
+  <li><a href="#require_a_module_from_the_node_modules_directory">Загрузка модулей из каталога node_modules</a></li>
+</ul>
+
+<h2 id="how-do-modules-work">Как работают модули?</h2>
+
+<p>Модули в Node.js, работают посредством экспорта методов и значений.  Если бы это было визуализировано в JS, то это выглядело бы примерно так:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">exports</span> <span class="o">=</span> <span class="p">{};</span>
+
+<span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">a</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+
+  <span class="nx">exports</span><span class="p">.</span><span class="nx">foo</span> <span class="o">=</span> <span class="nx">a</span> <span class="o">*</span> <span class="mi">10</span><span class="p">;</span>
+<span class="p">})();</span>
+
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">exports</span><span class="p">.</span><span class="nx">a</span><span class="p">);</span>   <span class="c1">// undefined</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">exports</span><span class="p">.</span><span class="nx">foo</span><span class="p">);</span> <span class="c1">// 100</span></code></pre></div>
+
+<p>Обратите внимание на <code>(function () { /* module code here */ } )();</code>. Это дает новые возможности модулю для предотвращения загрязнения глобального объекта.  В JavaScript это зовется замыканием.</p>
+
+<p>Модули в Node.js выполняются в пределах их зоны видимости (поэтому внешнее закрытие не является необходимым). Так будет выглядить код записанный в модуле Node.js:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">a</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+
+<span class="nx">exports</span><span class="p">.</span><span class="nx">foo</span> <span class="o">=</span> <span class="nx">a</span> <span class="o">*</span> <span class="mi">10</span><span class="p">;</span></code></pre></div>
+
+<p>Прежде, чем углубимся важно заметить, что объекты <code>exports</code> и <code>module.exports</code> в Node.js эвивалентны. Они оба доступны, потому что соответствуют стандурту <a href="http://www.commonjs.org/">CommonJS</a> и другим стандартам <a href="http://requirejs.org/">RequireJS</a>.</p>
+
+<h2 id="create-and-require-a-module">Создание и загрузка модулей</h2>
+
+<p>Сначала создадим папку и назовем ее <code>shapes</code>.
+Внутри <code>shapes</code>, создадим файл и назовем его <code>circle.js</code> с таким содержанием:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">PI</span> <span class="o">=</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">PI</span><span class="p">;</span>
+
+<span class="nx">exports</span><span class="p">.</span><span class="nx">area</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">r</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="nx">PI</span> <span class="o">*</span> <span class="nx">r</span> <span class="o">*</span> <span class="nx">r</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="nx">exports</span><span class="p">.</span><span class="nx">circumference</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">r</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="nx">PI</span> <span class="o">*</span> <span class="nx">r</span><span class="p">;</span>
+<span class="p">};</span></code></pre></div>
+
+<p>Модуль <code>circle.js</code> экспортирует функции <code>area()</code> и <code>circumference()</code>. Для экспорта объекта добавьте его в специальный объект экспорта. Локальные переменные будут приватными для модуля. В данном примере, переменная <code>PI</code> приватна для модуля <code>circle.js</code>.</p>
+
+<p>Потом, добавим другой файл в <code>shapes</code> и назовем его <code>circle_example.js</code> со следующим содержанием:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">circle</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;./circle&#39;</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">radius</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;The area of a circle with radius &#39;</span> <span class="o">+</span> <span class="nx">radius</span> <span class="o">+</span> <span class="s1">&#39; is &#39;</span> <span class="o">+</span> <span class="nx">circle</span><span class="p">.</span><span class="nx">area</span><span class="p">(</span><span class="nx">radius</span><span class="p">));</span></code></pre></div>
+
+<p>А теперь, запустите приложение, написав <code>node circle_example.js</code> внутри каталога <code>shapes</code>. Вы должны увидеть следующее:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">The area of a circle with radius <span class="m">10</span> is 314.159265359</code></pre></div>
+
+<p>Обратите внимание на <code>./</code> в <code>require('./circle.js')</code> - если имя модуля начнется с этого узла, то он загрузит файл относитительно текущего рабочего каталога. Если опустить <code>./</code> то будет происходить поиск в  node_modules или с базовых модулях Nodes.</p>
+
+<p>Попробуйте создать создать свой модуль для прямоугольника с аналогичными операциями.</p>
+
+<h2 id="require-a-json-file">Загрузка JSON файла</h2>
+
+<p>JSON файл можно добавить в проект, выполнив <code>require('./filename.json')</code>.  Это потому что файлы <code>.json</code> автоматически читаются как текстовые файлы.</p>
+
+<p>Давайте создадим пример конфигурационного JSON файла. Сначала, создадим файл и назовем его <code>config.json</code> и заполним его следующим:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="p">{</span>
+  <span class="s2">&quot;poll-frequency&quot;</span><span class="o">:</span> <span class="mi">10</span><span class="p">,</span>
+  <span class="s2">&quot;urls&quot;</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;test.com&quot;</span><span class="p">,</span> <span class="s2">&quot;test.org&quot;</span><span class="p">],</span>
+  <span class="s2">&quot;data&quot;</span><span class="o">:</span> <span class="p">{</span> <span class="s2">&quot;name&quot;</span><span class="o">:</span> <span class="s2">&quot;test&quot;</span><span class="p">,</span> <span class="s2">&quot;encoding&quot;</span><span class="o">:</span> <span class="s2">&quot;utf8&quot;</span> <span class="p">}</span>
+<span class="p">}</span></code></pre></div>
+
+<p>Сейчас, давайте откроем Node REPL и глянем как модуль системы загрузил JSON файлы. Обратите, что возвращает <code>require</code> возвращает объект JavaScript который похож на содержимое <code>config.json</code>. Кстать, важно помнить, что префикс <code>./</code> необходим при использовании локальных файлов. Если вы опустите префикс Node, то предполагается, что вы хотите загрузить что-то из каталога <code>node_modules</code> или из базовых модулей Node.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="o">&gt;</span> <span class="kd">var</span> <span class="nx">config</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;./config&#39;</span><span class="p">)</span>
+<span class="kc">undefined</span>
+<span class="o">&gt;</span> <span class="nx">config</span><span class="p">.</span><span class="nx">urls</span>
+<span class="p">[</span> <span class="s1">&#39;test.com&#39;</span><span class="p">,</span> <span class="s1">&#39;test.org&#39;</span> <span class="p">]</span></code></pre></div>
+
+<h2 id="require-a-core-module">Загрузка базовых модулей</h2>
+
+<p>Node.js поставляется с несколькими модулями для выполнения различных системных операций. Базовые модули описаны в <a href="https://github.com/joyent/node/tree/master/lib">lib folder</a>.</p>
+
+<p>Базозые модули всегда загружаются, если их имя файла передано в <code>require()</code>. Например, <code>require('http')</code> будет всегда возвращать встроенный HTTP-модуль, даже если сущечтвует npm модуль с таким же именем.</p>
+
+<h2 id="require-a-module-from-the-nodemodules-directory">Загрузка модулей из каталога node_modules</h2>
+
+<p>Модули могут быть установлены используя менеджер пакетов Node.js <code>npm</code> чтобы включить его в ваше приложение.</p>
+
+<p>Для следующего примера давайте возьмем список цифр, отсортируем и отфильтруем их. Чтобы это сделать добавьте <a href="https://npmjs.org/package/underscore"> модуль underscore.js</a>. Сначала нужно установить подчеркивание, выполнив следующую команду из совершенно нового каталога.</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>npm init /* fill out the defaults */
+<span class="nv">$ </span>npm install underscore --save</code></pre></div>
+
+<p>Сейчас создаим файл и назовем его <code>sort_example.js</code> и добавим следующее:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">underscore</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;underscore&#39;</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">listOfNumbers</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">6</span><span class="p">];</span>
+
+<span class="kd">var</span> <span class="nx">sortedList</span> <span class="o">=</span> <span class="nx">underscore</span><span class="p">.</span><span class="nx">sortBy</span><span class="p">(</span><span class="nx">listOfNumbers</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">n</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">n</span><span class="p">;</span> <span class="p">});</span>
+
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">sortedList</span><span class="p">);</span></code></pre></div>
+
+<p>После того, как вы научились использовать и создавать модули, вы можете научиться публично опубликовать их <a href="http://npmjs.org/">на сайте npm</a>.</p>
+
+<h2 id="module-caching">Module caching</h2>
+
+<p>Node автоматически кэширует необходимые модули на основе полного пути к этому модулю ОС. Это имеет несколько побочных эффектов. Во-первых, каждый модуль будет загружаться только один раз из заданного каталога.Это означает, что любые изменения экспортируемых функций, объектов или внутреннего состояния будут доступны всем пользователям этого модуля в вашем приложении. Во-вторых, вы можете загружать разные версии одного и того же модуля, основываясь на том, откуда он загружается. Это может быть неплохо, если вы, к примеру, используете несколько версий <code>underscore</code>.</p>
+
+
+    <div id="next">
+      
+        <div class="continue">
+          <a href="test.html">
+            <!-- Please don't just skip through these, actually do the labs! -->
+              Так держать! Продолжение в следующей лабораторной работе.
+            <span>Тестирование с помощью Mocha</span>
+          </a>
+        </div>
+      
+    </div>
+    <div id="footer">
+        <p>Labs created by <a href="https://twitter.com/joeandaverde">@joeandaverde</a></p>
+        <p>Учебный материал переведен <a href="https://t.me/Rat_Z">@Rat_Z</a> и <a href="https://t.me/Alex_Ebenrode">@Alex_Ebenrode</a></p>
+    </div>
+  </body>
+
+<!-- Mirrored from www.nodelabs.org/npm.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 04 Sep 2017 18:01:56 GMT -->
+</html>

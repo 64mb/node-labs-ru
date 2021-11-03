@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+  
+<!-- Mirrored from www.nodelabs.org/deploying.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 04 Sep 2017 18:01:58 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=utf-8" /><!-- /Added by HTTrack -->
+<head>
+    <title>Setting up a production ready Node.js process - Node Labs</title>
+    <link href="css/post.css" rel="stylesheet" type="text/css"/>
+    <link href="css/pygments.css" rel="stylesheet" type="text/css"/>
+    <link href='http://fonts.googleapis.com/css?family=Droid+Sans:400,700|Droid+Sans+Mono' rel='stylesheet' type='text/css' />
+
+    <script src="../ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src="../cdn.jsdelivr.net/jquery.cookie/1.3.1/jquery.cookie.js"></script>
+    <script src="../nodelabs.herokuapp.com/socket.io/socket.io.html"></script>
+    <script src="js/unlock.js"></script>
+    <script type="text/javascript">
+
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','../www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-35011668-1', 'nodelabs.org');
+      ga('require', 'linkid', 'linkid.html');
+      ga('send', 'pageview');
+
+    </script>
+  </head>
+  <body>
+
+    <div id="header">
+      <a href="index.html" title="Take me home!"><img src="css/img/logotype_dark.png" /></a>
+    </div>
+
+    <h1 id="setting-up-a-production-ready-nodejs-process">Настройка готового процесса Node.js</h1>
+
+<h2 id="introduction">Введение</h2>
+
+<p>Node узлы в процессе. Это достигается установкой нескольких процессов Node, которые принимают соединения на нестандартном порту и настраивают обратный прокси для маршрутизации соединений. В этой лаборатории вы узнаете, как поддерживать процессы узла с отказоустойчивым способом. Эти инструкции были разработаны с использованием Ubuntu AMI из AWS (amazon web services).</p>
+
+<h2 id="node-environment">Среда Node</h2>
+
+<p>Войдите в свою EC2 панель управления и создайте новую виртуальную машину для установки узла Node. Вы можете сделать это, перейдя к:</p>
+
+<ul>
+  <li>Загрузка примера</li>
+  <li>Выбор свободного уровня</li>
+  <li>Ubuntu Server 13.10 - ami-ace67f9c (64-bit) / ami-aae67f9a</li>
+  <li>Free Micro Instance</li>
+  <li>Настройка групы безопасности (шаг 6, Перед тем, как запустить экземпляр)</li>
+  <li>Включение http 80 and https 443</li>
+  <li>Загрузка</li>
+  <li>Выбор новой пары ключей (очень важно держать их рядом)</li>
+</ul>
+
+<p>Найдите общедоступный IP-адрес для только что созданной виртуальной машины. Вы можете выполнить ssh с помощью следующей команды.</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">ssh -i node.pem ubuntu@54.213.246.161</code></pre></div>
+
+<h2 id="installing-node">Установка Node</h2>
+
+<p>Node имеет отличные инструкции по установке с apt-get <a href="https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager">here</a>. Важная часть здесь:</p>
+
+<p>(Не копируйте и не вставляйте это, потому что он запрашивает ввод)</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">sudo apt-get update
+sudo apt-get install -y python-software-properties python g++ make
+sudo add-apt-repository ppa:chris-lea/node.js
+sudo apt-get update
+sudo apt-get install nodejs
+
+sudo ln -s /usr/bin/node /usr/bin/nodejs</code></pre></div>
+
+<p>Это создает новый репозиторий aptitude, в котором должна быть доступна последняя стабильная версия Node.На момент написания официальных репозиториев Ubuntu была устаревшая версия Nofr (0.6.7).</p>
+
+<p>Проверьте свою установку.</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">node -v</code></pre></div>
+
+<h2 id="setting-up-a-node-process">Настройка процесса узла</h2>
+
+<p>Начнем с создания простого веб-приложения узла с помощью Express. Express - это основа для создания веб-приложений. Теперь, из вашего домашнего каталога на новой виртуальной машине:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">&gt; mkdir node_app
+&gt; <span class="nb">cd </span>node_app
+&gt; npm init</code></pre></div>
+
+<p>Запустите подсказки, чтобы инициализировать свой файл <code>package.json</code>. Неважно, что вы отвечаете.</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">npm install express --save</code></pre></div>
+
+<p>Это установит Express и добавит его как зависимость от вашего файла <code>package.json</code>.</p>
+
+<p>Теперь создайте файл с именем <code>server.js</code> и добавьте следующее содержимое для создания базового веб-приложения с помощью Express. Этот пример прослушивает порт 3000 и отвечает на все HTTP-глаголы по любому пути с идентификатором процесса.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">express</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;express&#39;</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">app</span> <span class="o">=</span> <span class="nx">express</span><span class="p">();</span>
+<span class="kd">var</span> <span class="nx">server</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;http&#39;</span><span class="p">).</span><span class="nx">createServer</span><span class="p">(</span><span class="nx">app</span><span class="p">);</span>
+
+<span class="nx">app</span><span class="p">.</span><span class="nx">configure</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+   <span class="nx">app</span><span class="p">.</span><span class="nx">set</span><span class="p">(</span><span class="s1">&#39;port&#39;</span><span class="p">,</span> <span class="mi">3000</span><span class="p">);</span>
+<span class="p">});</span>
+
+<span class="nx">app</span><span class="p">.</span><span class="nx">all</span><span class="p">(</span><span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+   <span class="nx">res</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="s1">&#39;Hello from pid: &#39;</span> <span class="o">+</span> <span class="nx">process</span><span class="p">.</span><span class="nx">pid</span> <span class="o">+</span> <span class="s1">&#39;\n&#39;</span><span class="p">);</span>
+<span class="p">});</span>
+
+<span class="nx">server</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="nx">app</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;port&#39;</span><span class="p">));</span>
+
+
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;Server listening on port &#39;</span> <span class="o">+</span> <span class="nx">app</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;port&#39;</span><span class="p">));</span></code></pre></div>
+
+<p>Давайте начнем процесс и запустим быстрый curl-запрос. Обратите внимание, что указанный порт равен 3000.</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">node server.js<span class="p">&amp;</span>
+curl -I localhost:3000</code></pre></div>
+
+<p>Теперь убейте процесс и продолжайте.</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">killall node</code></pre></div>
+
+<h3 id="cluster">Кластер</h3>
+
+<p>Мы начнем масштабирование узла, используя модуль кластера, который является частью основной библиотеки. Начиная с Node.js v0.10.0, кластерный модуль неравномерно распределяет трафик на дочерние процессы. Это связано с тем, что Node оставляет маршрутизацию входящих подключений к операционной системе. К сожалению, операционные системы, основанные на Unix, плохо выполняют распределение новых подключений между дочерними процессами. Частично это связано с тем, что он пытается быть эффективным, передавая запрос на процесс уже переднего плана, который в этом случае используется последним. Эта проблема не влияет на Windows, поскольку она использует другой механизм планирования. В следующей стабильной версии Node распределение входящих соединений будет обрабатываться узлом и по умолчанию будет использоваться циклический подход. Несмотря на то, что в настоящий момент это не очень хороший выбор, мы рассмотрим, как это работает.</p>
+
+<h3 id="master-and-child">Мастер и дитя</h3>
+
+<p>Структура для использования кластерного модуля проста. Требует модуль <code>cluster</code>, и он имеет свойство, которое указывает, является ли текущий процесс основным процессом. Если ваш процесс является основным процессом, он отвечает за разблокирование дочерних процессов. После этого это обычное дело. Программа вашего узла не знает ничего другого. Дочерние процессы могут прослушивать один и тот же порт (3000 в приведенном ниже примере) без проблем. Это потому что Node имеет крючки в точке, где вы запрашиваете доступ к порту и раздает уже полученный файловый дескриптор <a href="http://en.wikipedia.org/wiki/File_descriptor">file descriptor</a> для дочерних процессов.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">express</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;express&#39;</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">app</span> <span class="o">=</span> <span class="nx">express</span><span class="p">();</span>
+<span class="kd">var</span> <span class="nx">server</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;http&#39;</span><span class="p">).</span><span class="nx">createServer</span><span class="p">(</span><span class="nx">app</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">cluster</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;cluster&#39;</span><span class="p">);</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="nx">cluster</span><span class="p">.</span><span class="nx">isMaster</span><span class="p">)</span> <span class="p">{</span>
+   <span class="c1">// Запуск 5 дочерних процессов в качестве мастера.</span>
+   <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">cluster</span><span class="p">.</span><span class="nx">fork</span><span class="p">();</span>
+   <span class="p">}</span>
+<span class="p">}</span>
+<span class="k">else</span> <span class="p">{</span>
+   <span class="c1">// Bootstrap приложения. Это дочерний процесс.</span>
+   <span class="nx">app</span><span class="p">.</span><span class="nx">configure</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+      <span class="nx">app</span><span class="p">.</span><span class="nx">set</span><span class="p">(</span><span class="s1">&#39;port&#39;</span><span class="p">,</span> <span class="mi">3000</span><span class="p">);</span>
+   <span class="p">});</span>
+
+   <span class="nx">app</span><span class="p">.</span><span class="nx">all</span><span class="p">(</span><span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">res</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="s1">&#39;Hello world!&#39;</span><span class="p">);</span>
+   <span class="p">});</span>
+
+   <span class="nx">server</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="nx">app</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;port&#39;</span><span class="p">));</span>
+
+
+   <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;Server listening on port &#39;</span> <span class="o">+</span> <span class="nx">app</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;port&#39;</span><span class="p">));</span>
+<span class="p">}</span></code></pre></div>
+
+<h2 id="multiple-processes">Несколько процессов</h2>
+
+<p>Давайте посмотрим, как мы можем запустить еще один процесс. На этот раз мы собираемся изменить строку спецификации порта, чтобы посмотреть на среду (доступ к вашей среде с помощью <code>SET</code> в Windows и <code>export</code> на unix). Среда может содержать множество конкретных параметров приложения, таких как строки подключения и пути. Если вы не читали о 12 факторных приложениях, то сейчас самое подходящее время. <a href="http://12factor.net/">12 факторных приложений</a> является рекомендуемой отправной точкой для создания масштабируемых приложений.</p>
+
+<p>Измените порт конфигурации порта на этот:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="c1">//конфигурация порта вывода из среды</span>
+<span class="nx">app</span><span class="p">.</span><span class="nx">set</span><span class="p">(</span><span class="s1">&#39;port&#39;</span><span class="p">,</span> <span class="nx">process</span><span class="p">.</span><span class="nx">env</span><span class="p">.</span><span class="nx">PORT</span> <span class="o">||</span> <span class="mi">3000</span><span class="p">);</span></code></pre></div>
+
+<p>Теперь, когда мы запускаем наш процесс, мы можем установить переменную среды PORT. Попробуем это, передав разные порты нескольким процессам узла. Мы можем настроить среду для процесса, установив переменные непосредственно перед запуском.</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">PORT</span><span class="o">=</span><span class="m">4000</span> node server.js<span class="p">&amp;</span>
+<span class="nv">PORT</span><span class="o">=</span><span class="m">4001</span> node server.js<span class="p">&amp;</span></code></pre></div>
+
+<p>и проверим это:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">curl -I localhost:4000
+curl -I localhost:4001</code></pre></div>
+
+<p>и убьем это</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">killall node</code></pre></div>
+
+<p>Хорошо, теперь мы видим, как настроить процесс Node для прослушивания на разных портах через переменную среды. Давайте посмотрим, как управлять продолжительностью жизни наших процессов узла.</P>
+
+<h2 id="forever">Forever</h2>
+
+    <p>Forever это исполняемый файл, который отвечает за сохранение данного процесса. Если процесс выйдет из строя, существует forever, чтобы его снова запустить. Процессы умрут. Стоит отметить, что если процесс встречает неожиданное исключение, он должен полностью прекратиться. Это рекомендуется, потому что состояние процесса может быть неизвестным, и лучше начать в предсказуемом состоянии. Обычно так же легко начать совершенно новый процесс и позволить другим процессам узла тем временем обрабатывать трафик.</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">sudo npm install forever -g</code></pre></div>
+
+<p>Теперь мы можем использовать forever, чтобы гарантировать, что наш сервер Node продолжит работу..</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">PORT</span><span class="o">=</span><span class="m">4000</span> forever start server.js</code></pre></div>
+
+<p>Теперь давайте найдем идентификатор вновь запущенного процесса и убьем его.</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">ps -ax <span class="p">|</span> grep node</code></pre></div>
+
+<p>Вы увидите такую строку:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="m">7076</span> ?        Sl     0:00 /usr/bin/nodejs /home/ubuntu/node_app/server.js</code></pre></div>
+
+<p>Давайте убьем этот процесс.</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nb">kill</span> -9 7076</code></pre></div>
+
+<p>Повторно запустите команду grep выше, и вы увидите новый идентификатор процесса, назначенный процессу узла! Великолепно! Теперь у нас есть способ сохранить процесс. Следующий шаг обрабатывает процессы, запущенные после перезагрузки системы.</p>
+
+<h2 id="upstart">Upstart</h2>
+<p>Этот скрипт был заимствован из <a href="https://www.exratione.com/2013/02/nodejs-and-forever-as-a-service-simple-upstart-and-init-scripts-for-ubuntu/">Блог Ex Ratione’s</a></p>
+
+<p>Поместите этот скрипт в <code>/etc/init/node_app.conf</code>.</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="c">#!upstart</span>
+
+description <span class="s2">&quot;Example upstart script for a Node.js process&quot;</span>
+
+start on startup
+stop on shutdown
+expect fork
+
+<span class="c"># The full path to the directory containing the Node and Forever binaries.</span>
+<span class="c"># env NODE_BIN_DIR=&quot;/home/node/local/node/bin&quot;</span>
+<span class="c"># Set the NODE_PATH to the Node.js main node_modules directory.</span>
+<span class="c"># env NODE_PATH=&quot;/home/node/local/node/lib/node_modules&quot;</span>
+<span class="c"># The directory containing the application Javascript file.</span>
+<span class="c"># env APPLICATION_DIRECTORY=&quot;/home/node/my-application&quot;</span>
+<span class="c"># The application start Javascript filename.</span>
+<span class="c"># env APPLICATION_START=&quot;start-my-application.js&quot;</span>
+<span class="c"># Log file path.</span>
+<span class="c"># env LOG=&quot;/var/log/my-application.log&quot;</span>
+
+env <span class="nv">NODE_BIN_DIR</span><span class="o">=</span><span class="s2">&quot;/usr/bin/&quot;</span>
+env <span class="nv">NODE_PATH</span><span class="o">=</span><span class="s2">&quot;/usr/lib/node_modules&quot;</span>
+env <span class="nv">APPLICATION_DIRECTORY</span><span class="o">=</span><span class="s2">&quot;/home/ubuntu/node_app&quot;</span>
+env <span class="nv">APPLICATION_START</span><span class="o">=</span><span class="s2">&quot;server.js&quot;</span>
+env <span class="nv">LOG</span><span class="o">=</span><span class="s2">&quot;/var/log/node_app.log&quot;</span>
+
+script
+    <span class="nv">PATH</span><span class="o">=</span><span class="nv">$NODE_BIN_DIR</span>:<span class="nv">$PATH</span>
+    <span class="nb">exec </span>forever --sourceDir <span class="nv">$APPLICATION_DIRECTORY</span> -a -l <span class="nv">$LOG</span> <span class="se">\</span>
+         --minUptime <span class="m">5000</span> --spinSleepTime <span class="m">2000</span> start <span class="nv">$APPLICATION_START</span>
+end script
+
+pre-stop script
+    <span class="nv">PATH</span><span class="o">=</span><span class="nv">$NODE_BIN_DIR</span>:<span class="nv">$PATH</span>
+    <span class="nb">exec </span>forever stop <span class="nv">$APPLICATION_START</span> &gt;&gt; <span class="nv">$LOG</span>
+end script</code></pre></div>
+
+<p>Теперь, чтобы запустить процесс, введите эту команду:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">&gt; sudo start node_app</code></pre></div>
+
+<p>Убедимся, что процесс запущен и работает:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="o">&gt;</span> <span class="nx">ps</span> <span class="nx">ax</span> <span class="o">|</span> <span class="nx">grep</span> <span class="nx">node</span></code></pre></div>
+
+<p>Остановка тоже простая:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">&gt; sudo stop node_app</code></pre></div>
+
+<p>Теперь, когда сервер перезагружается, он автоматически запустит процесс узла.</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">&gt; sudo reboot</code></pre></div>
+
+<p>После того, как все вернулось, снова запустим нашу простую проверку процесса. На этом этапе мы знаем, как настроить Node процесс и поддерживать его в рабочей среде. Мы могли бы остановиться здесь и обслуживать запросы непосредственно из Node. Однако многие производственные среды принимают запросы посредством <a href="http://en.wikipedia.org/wiki/Reverse_proxy">обратный прокси</a>.</p>
+
+<h2 id="reverse-proxy-and-ssl-termination-via-nginx-or-haproxy">Обратный прокси и SSL прерывания в nginx или HAProxy</h2>
+
+<p>
+
+    Большинство производственных запросов маршрутизации направляются через обратный прокси. Этот процесс предназначен для прекращения SSL и распределения трафика в соответствующий процесс узла. Он также может обнаруживать неисправные узлы и трафик вокруг них. Несколько популярных вариантов для обратного прокси-сервера и сервера терминации SSL это <a href="http://nginx.org/">nginx</a> и <a href="http://haproxy.1wt.eu/">HAProxy</a>. Конфигурация каждого из них варьируется от простого до чрезвычайно сложного. В некоторых конфигурациях даже используются системы массового обслуживания сообщений, такие как <a href="https://www.rabbitmq.com/">RabbitMQ</a> для сохранения всех входящих запросов, ожидающих выполнения Node процесса.</p>
+
+
+    <div id="next">
+      
+        <div class="continue">
+          <a href="exercises.html">
+            <!-- Please don't just skip through these, actually do the labs! -->
+              Так держать! Перейдите к следующей лабе.
+            <span>Упражнения, чтобы собрать все это вместе</span>
+          </a>
+        </div>
+      
+    </div>
+    <div id="footer">
+        <p>Labs created by <a href="https://twitter.com/joeandaverde">@joeandaverde</a></p>
+        <p>Учебный материал переведен <a href="https://t.me/Rat_Z">@Rat_Z</a> и <a href="https://t.me/Alex_Ebenrode">@Alex_Ebenrode</a></p>
+    </div>
+  </body>
+
+<!-- Mirrored from www.nodelabs.org/deploying.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 04 Sep 2017 18:01:58 GMT -->
+</html>

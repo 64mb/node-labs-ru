@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html>
+
+<!-- Mirrored from www.nodelabs.org/data-storage.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 04 Sep 2017 18:01:56 GMT -->
+<!-- Added by HTTrack -->
+<meta http-equiv="content-type" content="text/html;charset=utf-8"/><!-- /Added by HTTrack -->
+<head>
+    <title>Хранение некоторых данных - Node Labs</title>
+    <link href="css/post.css" rel="stylesheet" type="text/css"/>
+    <link href="css/pygments.css" rel="stylesheet" type="text/css"/>
+    <link href='http://fonts.googleapis.com/css?family=Droid+Sans:400,700|Droid+Sans+Mono' rel='stylesheet' type='text/css'/>
+
+    <script src="../ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src="../cdn.jsdelivr.net/jquery.cookie/1.3.1/jquery.cookie.js"></script>
+    <script src="../nodelabs.herokuapp.com/socket.io/socket.io.html"></script>
+    <script src="js/unlock.js"></script>
+    <script type="text/javascript">
+
+        (function (i, s, o, g, r, a, m) {
+            i['GoogleAnalyticsObject'] = r;
+            i[r] = i[r] || function () {
+                (i[r].q = i[r].q || []).push(arguments)
+            }, i[r].l = 1 * new Date();
+            a = s.createElement(o),
+                m = s.getElementsByTagName(o)[0];
+            a.async = 1;
+            a.src = g;
+            m.parentNode.insertBefore(a, m)
+        })(window, document, 'script', '../www.google-analytics.com/analytics.js', 'ga');
+
+        ga('create', 'UA-35011668-1', 'nodelabs.org');
+        ga('require', 'linkid', 'linkid.html');
+        ga('send', 'pageview');
+
+    </script>
+</head>
+<body>
+
+<div id="header">
+    <a href="index.html" title="Take me home!"><img src="css/img/logotype_dark.png"/></a>
+</div>
+
+<h1 id="storing-some-data">Хранилища данных</h1>
+
+<p>Большинство приложений просто бесполезны без хранилища данных. Давайте испробуем mongodb, чтобы что-нибудь сохранить. Вам понадобится доступ к экземпляру mongodb, чтобы двигаться дальше в этой лабораторной работе.</p>
+
+<ul>
+    <li><a href="#install_mongo">Настройка MongoDB</a></li>
+    <li><a href="#starting_the_project">Начало работы с проектом</a></li>
+    <li><a href="#get_everything_in_place">Получаем все на месте</a></li>
+    <li><a href="#connect_to_mongo">Подключение к Mongo</a></li>
+    <li><a href="#insert_some_data">Внесение некоторых данных</a></li>
+    <li><a href="#interact_with_the_data">Взаимодействие с данными</a></li>
+</ul>
+
+<h2 id="install_mongo">Настройка MongoDB</h2>
+<p>1) Установить msi файл cо <a href="http://ratz16mb.tk/nodelabs/essentials.html">страницы с ПО</a>.</p>
+<p>2) Открыть консоль <code>cmd</code> от имени администратора, сделать это можно по нажатию правой кнопкой мыши. Далее пропишите в консоли команду: <code>mkdir
+    c:\data\db</code>
+    и команду: <code>mkdir c:\data\log</code>, которые создадут две пустые директории для файлов хранения БД.
+</p>
+<p>3) Создать в каталоге <code>C:\Program Files\MongoDB\Server\3.4\</code> файл <code>mongod.cfg</code> от имени администратора, и вписать следующее:
+</p>
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="p">systemLog: </span>
+  <span class="o">destination: file</span>
+  <span class="o">path: c:\data\log\mongod.log </span>
+<span class="p">storage:</span>
+  <span class="o">dbPath: c:\data\db</span></code></pre>
+</div>
+<p>4) Для того, чтобы MongoDB работал в виде сервиса операционной системы, необходимо выполнить команду:
+<div class="highlight">
+    <pre><code>sc.exe create MongoDB binPath= "\"C:\Program Files\MongoDB\Server\3.4\bin\mongod.exe\" —service —config=\"C:\Program Files\MongoDB\Server\3.4\mongod.cfg\"" DisplayName= "MongoDB" start= "auto"</code></pre>
+</div>
+</p>
+<p>5) Запустить сервер можно с помощью команды <code>net start MongoDB</code>, остановить командой: <code>net stop MongoDB</code>.
+</p>
+
+<h2 id="starting_the_project">Начало работы с проектом</h2>
+
+<p>Создайте пустой каталог и назовите его <code>mongo-lab</code>. Внутри каталога <code>mongo-lab</code> запустите <code>npm init</code> и оставьте все по умолчанию. Это создаст новый <code>package.json</code> файл. <code>package.json</code> отображает смотрящему содержимое вашего проекта и определяет зависимости вашего проекта от других модулей. После этого запустите <code>npm install --save mongodb</code>. Это загрузит
+    модуль <code>mongodb</code> и сохранит его в файле <code>package.json</code>, который мы создали ранее.</p>
+
+<p>Это верный путь для начала работы со всеми проектами Node.js. Если вы используете систему управления версиями, следует добавить в нее <code>package.json</code>. Тогда, если кому-то необходимо будет клонировать ваш репозиторий, то он просто запустит <code>npm install</code> и NPM загрузит все необходимые зависимости для разработки и запуска вашего проекта.</p>
+
+<p>После всех этих действий <code>package.json</code> выглядит примерно так:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="p">{</span>
+  <span class="s2">&quot;name&quot;</span><span class="o">:</span> <span class="s2">&quot;mongo-lab&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;version&quot;</span><span class="o">:</span> <span class="s2">&quot;0.0.0&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;description&quot;</span><span class="o">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;main&quot;</span><span class="o">:</span> <span class="s2">&quot;index.js&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;repository&quot;</span><span class="o">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;author&quot;</span><span class="o">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;license&quot;</span><span class="o">:</span> <span class="s2">&quot;BSD&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;dependencies&quot;</span><span class="o">:</span> <span class="p">{</span>
+    <span class="s2">&quot;mongodb&quot;</span><span class="o">:</span> <span class="s2">&quot;~1.3.0&quot;</span>
+  <span class="p">}</span>
+<span class="p">}</span></code></pre>
+</div>
+
+<h2 id="get-everything-in-place">Получаем все на месте</h2>
+
+<p>Создайте файл <code>index.js</code>. Внутри <code>index.js</code> <code>require()</code> модуль <code>mongodb</code> установленный нами ранее.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">mongodb</span> <span
+        class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">Db</span>      <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span
+            class="nx">Db</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">Server</span>  <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">Server</span><span
+            class="p">;</span></code></pre>
+</div>
+
+<p>Мы пошли дальше и назначили БД и серверные переменные для соответсвия экспорту <code>mongodb</code>.
+    * Сервер: представляет сервер mongodb
+    * БД: представляет базу данных на сервере</p>
+
+<p>Далее добавим файл <code>config.json</code>. Внутри <code>config.json</code> создадим объект с объектом-членом
+    <code>"connection"</code> как показано далее.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="p">{</span>
+  <span class="s2">&quot;connection&quot;</span><span class="o">:</span> <span class="p">{</span>
+    <span class="s2">&quot;dbName&quot;</span><span class="o">:</span> <span class="s2">&quot;nodelabs-users&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;host&quot;</span><span class="o">:</span> <span class="s2">&quot;localhost&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;port&quot;</span><span class="o">:</span> <span class="mi">27017</span>
+  <span class="p">}</span>
+<span class="p">}</span></code></pre>
+</div>
+
+<p><strong>Примечание:</strong> Вы можете положить его в ваш файл <code>index.js</code>, но хорошей практикой будет сохранение конфигурационных переменных из своего источника так, чтобы можно было легче изменить их в будущем и потенциально исключить их из источника управления версиями.</p>
+
+<p>Далее потребуем <code>config.json</code>. Так мы получим информацию о подключении.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">mongodb</span> <span
+        class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">Db</span>      <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span
+            class="nx">Db</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">Server</span>  <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">Server</span><span
+            class="p">;</span>
+
+<span class="kd">var</span> <span class="nx">config</span>  <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;./config.json&quot;</span><span
+            class="p">).</span><span class="nx">connection</span><span class="p">;</span></code></pre>
+</div>
+
+<h2 id="connect-to-mongo">Подключение к Mongo</h2>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="p">...</span>
+
+<span class="kd">var</span> <span class="nx">server</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Server</span><span
+            class="p">(</span><span class="nx">config</span><span class="p">.</span><span class="nx">host</span><span class="p">,</span> <span
+            class="nx">config</span><span class="p">.</span><span class="nx">port</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">db</span>     <span class="o">=</span> <span class="k">new</span> <span class="nx">Db</span><span
+            class="p">(</span><span class="nx">config</span><span class="p">.</span><span class="nx">dbName</span><span class="p">,</span> <span class="nx">server</span><span
+            class="p">,</span> <span class="p">{</span> <span class="nx">safe</span><span class="o">:</span><span class="kc">true</span> <span
+            class="p">});</span></code></pre>
+</div>
+
+<h2 id="insert-some-data">Внесение некоторых данных</h2>
+
+<p>Мы собираемся добавить список пользователей в эту базу данных. Данные могут быть найдены <a
+        href="https://raw.github.com/nodekc/workshop/master/examples/mongo/assets/users.json">здесь</a>. Загрузите этот файл и сохраните в <code>./data</code>.
+</p>
+
+<p>Давайте создадим функцию <code>insert</code>, которая возьмет информацию о пользователях из соответствующего файла и внесет в коллецию mongo <code>nodelabs-users</code>.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="p">...</span>
+
+<span class="kd">var</span> <span class="nx">insert</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">callback</span><span
+            class="p">)</span> <span class="p">{</span>
+  <span class="c1">// получаем данные пользователей</span>
+  <span class="kd">var</span> <span class="nx">users</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;./data/users.json&quot;</span><span
+            class="p">);</span>
+
+  <span class="c1">// получаем коллекцию &quot;nodelabs-users&quot;</span>
+  <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s2">&quot;nodelabs-users&quot;</span><span
+            class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">collection</span><span
+            class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">return</span> <span class="nx">callback</span><span
+            class="p">(</span><span class="nx">err</span><span class="p">);</span>
+
+    <span class="c1">// вносим пользователей</span>
+    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">(</span><span class="nx">users</span><span
+            class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
+  <span class="p">});</span>
+<span class="p">}</span></code></pre>
+</div>
+
+<p>Теперь запустим функцию <code>insert</code></p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="p">...</span>
+
+<span class="c1">// убедитесь, что открыли соеднинение с базой данных</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">open</span><span class="p">(</span><span class="kd">function</span> <span
+            class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">err</span><span
+            class="p">;</span>
+ <span class="c1">// вводим наши данные</span>
+ <span class="nx">insert</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">err</span><span
+            class="p">)</span> <span class="p">{</span>
+   <span class="k">if</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span
+            class="nx">err</span><span class="p">;</span>
+
+   <span class="c1">// мы загрузили пользователей!</span>
+   <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Inserted Users!&quot;</span><span
+            class="p">);</span>
+
+   <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+ <span class="p">});</span>
+<span class="p">});</span></code></pre>
+</div>
+
+<p>Если вы запустите это сразу, то должны увидеть следующий вывод:</p>
+
+<div class="highlight">
+    <pre><code class="language-bash" data-lang="bash">Inserted Users!</code></pre>
+</div>
+
+<p>И коллекция <code>nodelabs-users</code> должна быть заселена нашими зернами данных.</p>
+
+<h2 id="interact-with-the-data">Взаимодействие с данными</h2>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="p">...</span> <span
+        class="c1">// Введем функцию сверху сюда</span>
+
+<span class="kd">var</span> <span class="nx">remove</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">callback</span><span
+            class="p">)</span> <span class="p">{</span>
+  <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s2">&quot;nodelabs-users&quot;</span><span
+            class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">collection</span><span
+            class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">return</span> <span class="nx">callback</span><span
+            class="p">(</span><span class="nx">err</span><span class="p">);</span>
+    <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="nx">callback</span><span
+            class="p">);</span>
+  <span class="p">});</span>
+<span class="p">};</span>
+
+<span class="p">...</span> <span class="c1">// db.open здесь</span></code></pre>
+</div>
+
+<p>Скомбинируем наши добавление и удаление для создания функции <code>reset</code>, так мы сможем легко уничтожить и переместить наши данные.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="p">...</span> <span
+        class="c1">// Удалим функцию здесь</span>
+
+<span class="kd">var</span> <span class="nx">reset</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">callback</span><span
+            class="p">)</span> <span class="p">{</span>
+  <span class="nx">remove</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">err</span><span
+            class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">return</span> <span class="nx">callback</span><span
+            class="p">(</span><span class="nx">err</span><span class="p">);</span>
+    <span class="nx">insert</span><span class="p">(</span><span class="nx">callback</span><span class="p">);</span>
+  <span class="p">});</span>
+<span class="p">};</span>
+
+<span class="p">...</span> <span class="c1">// db.open здесь</span></code></pre>
+</div>
+
+<p>Добавим метод <code>count</code> для подсчета пользователей в БД.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="p">...</span> <span class="c1">// reset здесь</span>
+
+<span class="kd">var</span> <span class="nx">count</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">callback</span><span
+            class="p">)</span> <span class="p">{</span>
+  <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s2">&quot;nodelabs-users&quot;</span><span
+            class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">collection</span><span
+            class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">return</span> <span class="nx">callback</span><span
+            class="p">(</span><span class="nx">err</span><span class="p">);</span>
+    <span class="nx">collection</span><span class="p">.</span><span class="nx">count</span><span class="p">(</span><span class="nx">callback</span><span
+            class="p">);</span>
+  <span class="p">});</span>
+<span class="p">};</span>
+
+<span class="p">...</span> <span class="c1">// и db.open здесь</span></code></pre>
+</div>
+
+<p>Заменим оригинальный вызов к db.open, так мы запустим программу которая сбросит данные и вызовет метод count.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="p">...</span> <span class="c1">// Функция взаимодействия здесь</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">open</span><span class="p">(</span><span class="kd">function</span> <span
+            class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+   <span class="k">if</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span
+            class="nx">err</span><span class="p">;</span>
+   <span class="nx">reset</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">err</span><span
+            class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span
+            class="nx">err</span><span class="p">;</span>
+      <span class="nx">count</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">err</span><span
+            class="p">,</span> <span class="nx">numberOfUsers</span><span class="p">)</span> <span class="p">{</span>
+         <span class="k">if</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span
+            class="nx">err</span><span class="p">;</span>
+         <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span
+            class="s2">&quot;User count is %d&quot;</span><span class="p">,</span> <span class="nx">numberOfUsers</span><span class="p">);</span>
+         <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+      <span class="p">});</span>
+   <span class="p">});</span>
+<span class="p">});</span></code></pre>
+</div>
+
+<p>Вот как все выглядит:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">mongodb</span> <span
+        class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">Db</span>      <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span
+            class="nx">Db</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">Server</span>  <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">Server</span><span
+            class="p">;</span>
+<span class="kd">var</span> <span class="nx">config</span>  <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;./config.json&quot;</span><span
+            class="p">).</span><span class="nx">connection</span><span class="p">;</span>
+
+<span class="kd">var</span> <span class="nx">server</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Server</span><span
+            class="p">(</span><span class="nx">config</span><span class="p">.</span><span class="nx">host</span><span class="p">,</span> <span
+            class="nx">config</span><span class="p">.</span><span class="nx">port</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">db</span>     <span class="o">=</span> <span class="k">new</span> <span class="nx">Db</span><span
+            class="p">(</span><span class="nx">config</span><span class="p">.</span><span class="nx">dbName</span><span class="p">,</span> <span class="nx">server</span><span
+            class="p">,</span> <span class="p">{</span><span class="nx">safe</span><span class="o">:</span><span class="kc">true</span><span
+            class="p">});</span>
+
+<span class="kd">var</span> <span class="nx">insert</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">callback</span><span
+            class="p">)</span> <span class="p">{</span>
+  <span class="c1">// добавим наших юзеров</span>
+  <span class="kd">var</span> <span class="nx">users</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;./data/users.json&quot;</span><span
+            class="p">);</span>
+
+  <span class="c1">// добавим &quot;nodelabs-users collection&quot;</span>
+  <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s2">&quot;nodelabs-users&quot;</span><span
+            class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">collection</span><span
+            class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">return</span> <span class="nx">callback</span><span
+            class="p">(</span><span class="nx">err</span><span class="p">);</span>
+
+    <span class="c1">// внесем юзеров</span>
+    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">(</span><span class="nx">users</span><span
+            class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
+  <span class="p">});</span>
+<span class="p">};</span>
+
+<span class="kd">var</span> <span class="nx">remove</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">callback</span><span
+            class="p">)</span> <span class="p">{</span>
+  <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s2">&quot;nodelabs-users&quot;</span><span
+            class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">collection</span><span
+            class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">return</span> <span class="nx">callback</span><span
+            class="p">(</span><span class="nx">err</span><span class="p">);</span>
+    <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="nx">callback</span><span
+            class="p">);</span>
+  <span class="p">});</span>
+<span class="p">};</span>
+
+<span class="kd">var</span> <span class="nx">reset</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">callback</span><span
+            class="p">)</span> <span class="p">{</span>
+  <span class="nx">remove</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">err</span><span
+            class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">return</span> <span class="nx">callback</span><span
+            class="p">(</span><span class="nx">err</span><span class="p">);</span>
+    <span class="nx">insert</span><span class="p">(</span><span class="nx">callback</span><span class="p">);</span>
+  <span class="p">});</span>
+<span class="p">};</span>
+
+<span class="kd">var</span> <span class="nx">count</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">callback</span><span
+            class="p">)</span> <span class="p">{</span>
+  <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s2">&quot;nodelabs-users&quot;</span><span
+            class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">collection</span><span
+            class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">return</span> <span class="nx">callback</span><span
+            class="p">(</span><span class="nx">err</span><span class="p">);</span>
+    <span class="nx">collection</span><span class="p">.</span><span class="nx">count</span><span class="p">(</span><span class="nx">callback</span><span
+            class="p">);</span>
+  <span class="p">});</span>
+<span class="p">};</span>
+
+<span class="nx">db</span><span class="p">.</span><span class="nx">open</span><span class="p">(</span><span class="kd">function</span> <span
+            class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+   <span class="k">if</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span
+            class="nx">err</span><span class="p">;</span>
+   <span class="nx">reset</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">err</span><span
+            class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span
+            class="nx">err</span><span class="p">;</span>
+      <span class="nx">count</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">err</span><span
+            class="p">,</span> <span class="nx">numberOfUsers</span><span class="p">)</span> <span class="p">{</span>
+         <span class="k">if</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span
+            class="nx">err</span><span class="p">;</span>
+         <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span
+            class="s2">&quot;User count is %d&quot;</span><span class="p">,</span> <span class="nx">numberOfUsers</span><span class="p">);</span>
+         <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+      <span class="p">});</span>
+   <span class="p">});</span>
+<span class="p">});</span></code></pre>
+</div>
+
+<p>Когда запустим, мы должны увидеть что-то подобное:</p>
+
+<div class="highlight">
+    <pre><code class="language-bash" data-lang="bash">User count is 1000</code></pre>
+</div>
+
+<h2 id="more-advanced-mongo-interactions">Больше дополнительных взаимодейстий с Mongo</h2>
+
+<p>Дальше добавим функцию, которая объединяет пользователей по первой букве в их свойстве <code>firstName</code>. Чтобы это сделать, нужно использовать <a
+        href="http://www.mongodb.org/display/DOCS/MapReduce">MapReduce</a>. Замените вашу функцию подсчета выше, чтобы включить <code>db.open</code> с этим:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="nx">db</span><span class="p">.</span><span
+        class="nx">open</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">err</span><span
+        class="p">)</span> <span class="p">{</span>
+
+   <span class="kd">var</span> <span class="nx">getCountByFirstName</span> <span class="o">=</span> <span class="p">(</span><span
+            class="kd">function</span> <span class="nx">getCountByFirstName</span><span class="p">()</span> <span class="p">{</span>
+      <span class="kd">var</span> <span class="nx">map</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">()</span> <span
+            class="p">{</span>
+         <span class="nx">emit</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">firstName</span><span
+            class="p">.</span><span class="nx">charAt</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="mi">1</span><span
+            class="p">);</span>
+      <span class="p">};</span>
+
+      <span class="kd">var</span> <span class="nx">reduce</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span
+            class="nx">key</span><span class="p">,</span> <span class="nx">values</span><span class="p">)</span> <span class="p">{</span>
+         <span class="k">return</span> <span class="nx">values</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span>
+      <span class="p">};</span>
+
+      <span class="k">return</span> <span class="kd">function</span> <span class="nx">_getCountByFirstName</span> <span class="p">(</span><span
+            class="nx">cb</span><span class="p">)</span> <span class="p">{</span>
+         <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span
+            class="s2">&quot;nodelabs-users&quot;</span><span class="p">,</span> <span class="kd">function</span> <span
+            class="nx">getUsersCollection</span> <span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span
+            class="nx">collection</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">err</span><span
+            class="p">;</span>
+            <span class="nx">collection</span><span class="p">.</span><span class="nx">mapReduce</span><span class="p">(</span><span class="nx">map</span><span
+            class="p">.</span><span class="nx">toString</span><span class="p">(),</span> <span class="nx">reduce</span><span class="p">.</span><span class="nx">toString</span><span
+            class="p">(),</span> <span class="p">{</span><span class="nx">out</span><span class="o">:</span><span class="p">{</span><span
+            class="nx">inline</span><span class="o">:</span><span class="mi">1</span><span class="p">}},</span> <span class="nx">cb</span><span
+            class="p">);</span>
+         <span class="p">});</span>
+      <span class="p">};</span>
+   <span class="p">}());</span>
+
+   <span class="nx">getCountByFirstName</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span
+            class="nx">error</span><span class="p">,</span> <span class="nx">results</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">JSON</span><span
+            class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">results</span><span class="p">,</span> <span class="kc">null</span><span
+            class="p">,</span> <span class="mi">4</span><span class="p">));</span>
+   <span class="p">});</span>
+<span class="p">});</span></code></pre>
+</div>
+
+<p>Что за функция заключена в круглые скобки? Она вызовет <code>IIFE</code> (Immediately Invoked Function Expression). Это позволит нам сохранить <code>map</code> и <code>reduce</code>, пока раскрывается функция <code>_getCountByFirstName</code>. Так <code>getCountByFirstName</code> должна быть присвоена <code>_getCountByFirstName</code> пока раскрываются приватные <code>map</code> и  <code>reduce</code> функции.</p>
+
+<p><strong>Заметьте, что</strong>  <code>map</code> и <code>reduce</code> функци не запустятся в <code>node</code>, они фактически сериализированны от вызова
+    <code>toString</code> и отправляются к <code>mongo</code> для загрузки на сервере. Так вы <strong>не сможете</strong> использовать любые переменные, которые будут нормально доступны (т.е. закрытые переменные ).</p>
+
+<p>Заметьте, как мы проходим в <code>{out : {inline : 1}}</code> это говорит mongo сделать уменьшение карты в памяти.</p>
+
+<p>Ваш вывод должен выглядеть примерно так:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="p">[</span>
+  <span class="p">{</span>
+    <span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="s2">&quot;A&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;value&quot;</span><span class="o">:</span> <span class="mi">14</span>
+  <span class="p">},</span>
+  <span class="p">{</span>
+    <span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="s2">&quot;B&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;value&quot;</span><span class="o">:</span> <span class="mi">6</span>
+  <span class="p">},</span>
+  <span class="p">{</span>
+    <span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;value&quot;</span><span class="o">:</span> <span class="mi">6</span>
+  <span class="p">},</span>
+  <span class="p">{</span>
+    <span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="s2">&quot;D&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;value&quot;</span><span class="o">:</span> <span class="mi">9</span>
+  <span class="p">},</span>
+  <span class="p">.</span>
+  <span class="p">.</span>
+  <span class="p">.</span>
+  <span class="p">{</span>
+    <span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="s2">&quot;W&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;value&quot;</span><span class="o">:</span> <span class="mi">3</span>
+  <span class="p">},</span>
+  <span class="p">{</span>
+    <span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="s2">&quot;Y&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;value&quot;</span><span class="o">:</span> <span class="mi">2</span>
+  <span class="p">},</span>
+  <span class="p">{</span>
+    <span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="s2">&quot;Z&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;value&quot;</span><span class="o">:</span> <span class="mi">2</span>
+  <span class="p">}</span>
+<span class="p">]</span></code></pre>
+</div>
+
+<p>Смотрите, можете ли вы реализовать ваши <code>findById</code> и <code>update</code> функции, используя то, что мы уже создали и <a
+        href="http://mongodb.github.com/node-mongodb-native/">докуменитровали для mongodb</a>.</p>
+
+
+<div id="next">
+
+    <div class="continue">
+        <a href="express.html">
+            <!-- Please don't just skip through these, actually do the labs! -->
+            Идем дальше!
+            <span>Платформа веб-приложений Express</span>
+        </a>
+    </div>
+
+</div>
+<div id="footer">
+    <p>Labs created by <a href="https://twitter.com/joeandaverde">@joeandaverde</a></p>
+    <p>Учебный материал переведен <a href="https://t.me/Rat_Z">@Rat_Z</a> и <a href="https://t.me/Alex_Ebenrode">@Alex_Ebenrode</a></p>
+</div>
+</body>
+
+<!-- Mirrored from www.nodelabs.org/data-storage.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 04 Sep 2017 18:01:56 GMT -->
+</html>

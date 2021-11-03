@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+  
+<!-- Mirrored from www.nodelabs.org/repl.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 04 Sep 2017 18:01:54 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=utf-8" /><!-- /Added by HTTrack -->
+<head>
+    <title>Среда Node.js REPL - Node Labs</title>
+    <link href="css/post.css" rel="stylesheet" type="text/css"/>
+    <link href="css/pygments.css" rel="stylesheet" type="text/css"/>
+    <link href='http://fonts.googleapis.com/css?family=Droid+Sans:400,700|Droid+Sans+Mono' rel='stylesheet' type='text/css' />
+
+    <script src="../ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <!--<script src="../cdn.jsdelivr.net/jquery.cookie/1.3.1/jquery.cookie.js"></script>-->
+    <!--<script src="../nodelabs.herokuapp.com/socket.io/socket.io.html"></script>-->
+    <!--<script src="js/unlock.js"></script>-->
+  </head>
+  <body>
+
+    <div id="header">
+      <a href="index.html" title="Take me home!"><img src="css/img/logotype_dark.png" /></a>
+    </div>
+
+    <h1 id="the-nodejs-repl">Среда Node.js REPL</h1>
+
+<p>В данной ЛР вы познакомитесь с Node.js REPL (read-eval-print loop) который позволяет выполнять код на языке
+    JavaScrip покомандно и сразу видеть результат в интерактивной среде. К концу этой ЛР вы должны научиться использовать REPL и определять строки, объекты, массивы и
+    функции в JavaScript.</p>
+<ul>
+  <li><a href="#starting_the_nodejs_repl_and_executing_statements">Запуск Node.js REPL и выполнение операторов</a></li>
+  <li><a href="#interacting_with_arrays">Взаимодействие с массивами</a></li>
+  <li><a href="#interacting_with_objects">Взаимодействие с объекстами</a></li>
+  <li><a href="#creating_and_calling_functions">Создание и вызов функций</a></li>
+  <li><a href="#multiline_statements_in_the_repl">Многострочные операторы в REPL</a></li>
+  <li><a href="#exiting_the_nodejs_repl">Выход из Node.js</a></li>
+</ul>
+
+<h2 id="starting_the_nodejs_repl_and_executing_statements">Запуск Node.js REPL и выполнение команд</h2>
+
+<p>Запустите Node.JS REPL, откройте командную строку или терминал и выполните <code>node</code>. Проверьте выполнение арифметиеского выражения:</p>
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="o">&gt;</span> <span class="mi">1</span> <span class="o">+</span> <span class="mi">5</span>
+<span class="mi">6</span>
+
+<span class="o">&gt;</span> <span class="kd">var</span> <span class="nx">add</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">a</span><span class="p">,</span> <span class="nx">b</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">a</span> <span class="o">+</span> <span class="nx">b</span><span class="p">;</span> <span class="p">}</span>
+<span class="kc">undefined</span>
+
+<span class="o">&gt;</span> <span class="nx">add</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+<span class="mi">6</span></code></pre></div>
+
+<p>Обратите внимание, что результат выполенной операции напечатан со следующей строкей без символа <code>&gt;</code>. Если вы сделали опечатку, то вы можете отменить последнюю операцию одноразовым нажатием <code>CTRL+C</code>.</p>
+<p>Если вы забыли присвоить значение выполнененной команды, то Node.js при помощи полезного синтаксиса поможет вернуть это значение, через <code>_</code>.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="o">&gt;</span> <span class="s2">&quot;Node.js Rocks!&quot;</span>
+<span class="s1">&#39;Node.js Rocks!&#39;</span>
+
+<span class="o">&gt;</span> <span class="nx">_</span>
+<span class="s1">&#39;Node.js Rocks!&#39;</span>
+
+<span class="o">&gt;</span> <span class="kd">var</span> <span class="nx">lastResult</span> <span class="o">=</span> <span class="nx">_</span>
+<span class="kc">undefined</span>
+
+<span class="o">&gt;</span> <span class="nx">lastResult</span>
+<span class="s1">&#39;Node.js Rocks!&#39;</span></code></pre></div>
+
+<h2 id="interacting_with_arrays">Взаимодействие с массивами</h2>
+
+<p>Основное различие между массивами в JavaScript с большинством других языков программирования в том, что они изменяемы (динамические) и нет необходимости задавать размер массива заранее. Используйте инициализатор массива (специальный синтаксис) для создания:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="o">&gt;</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+<span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+
+<span class="o">&gt;</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">].</span><span class="nx">length</span>
+<span class="mi">2</span></code></pre></div>
+
+<p>Добавление элемента в уже существующий массив</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="o">&gt;</span> <span class="kd">var</span> <span class="nx">a</span> <span class="o">=</span>  <span class="p">[</span><span class="s1">&#39;apple&#39;</span><span class="p">,</span> <span class="s1">&#39;banana&#39;</span><span class="p">,</span> <span class="s1">&#39;kiwi&#39;</span><span class="p">]</span>
+<span class="kc">undefined</span>
+
+<span class="o">&gt;</span> <span class="nx">a</span><span class="p">.</span><span class="nx">length</span>
+<span class="mi">3</span>
+
+<span class="o">&gt;</span> <span class="nx">a</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="s2">&quot;lemon&quot;</span><span class="p">)</span>
+<span class="mi">4</span> <span class="c1">// `push` возращает размер массива после завершения операции push</span>
+
+<span class="o">&gt;</span> <span class="nx">a</span><span class="p">.</span><span class="nx">unshift</span><span class="p">(</span><span class="s2">&quot;lime&quot;</span><span class="p">)</span>
+<span class="mi">5</span> <span class="c1">// `unshift` добавляет элемент в начало массива и возвращает новую длину</span></code></pre></div>
+
+<p>Теперь проверим содержимое вашего массива:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="o">&gt;</span> <span class="nx">a</span>
+<span class="p">[</span> <span class="s1">&#39;lime&#39;</span><span class="p">,</span>
+  <span class="s1">&#39;apple&#39;</span><span class="p">,</span>
+  <span class="s1">&#39;banana&#39;</span><span class="p">,</span>
+  <span class="s1">&#39;kiwi&#39;</span><span class="p">,</span>
+  <span class="s1">&#39;lemon&#39;</span> <span class="p">]</span></code></pre></div>
+
+<p>Удаление элемента из массива</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="o">&gt;</span> <span class="nx">a</span><span class="p">.</span><span class="nx">pop</span><span class="p">()</span>
+<span class="s1">&#39;lemon&#39;</span> <span class="c1">// `pop` удаляет последнее значение из массива и возвращает последний элемент</span>
+
+<span class="o">&gt;</span> <span class="nx">a</span><span class="p">.</span><span class="nx">shift</span><span class="p">()</span>
+<span class="s1">&#39;lime&#39;</span> <span class="c1">// `shift` удаляет первое значение из массива и возвращает первый элемент</span></code></pre></div>
+
+<p>Функция <code>slice</code> может быть использована для копирование части массива в другой массив. Он не изменяет исходный массив, а копирует его и возвращает только часть. Принимает 2 аргумента: индекс начала и индекс конца среза массива. Конечный индекс не включается в срез.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="o">&gt;</span> <span class="nx">a</span>
+<span class="p">[</span><span class="s1">&#39;apple&#39;</span><span class="p">,</span> <span class="s1">&#39;banana&#39;</span><span class="p">,</span> <span class="s1">&#39;kiwi&#39;</span><span class="p">]</span>
+
+<span class="o">&gt;</span> <span class="nx">a</span><span class="p">.</span><span class="nx">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="p">[</span><span class="s1">&#39;apple&#39;</span><span class="p">]</span>
+
+<span class="o">&gt;</span> <span class="nx">a</span>
+<span class="p">[</span><span class="s1">&#39;apple&#39;</span><span class="p">,</span> <span class="s1">&#39;banana&#39;</span><span class="p">,</span> <span class="s1">&#39;kiwi&#39;</span><span class="p">]</span> <span class="c1">// исходный массив не меняется</span>
+
+<span class="o">&gt;</span> <span class="nx">a</span><span class="p">.</span><span class="nx">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="p">[</span><span class="s1">&#39;apple&#39;</span><span class="p">,</span> <span class="s1">&#39;banana&#39;</span><span class="p">,</span> <span class="s1">&#39;kiwi&#39;</span><span class="p">]</span> <span class="c1">// копируется весь массив</span></code></pre></div>
+
+<p>Вы можете выбрать два последних значечения из массива, используя срез</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="o">&gt;</span> <span class="nx">a</span><span class="p">.</span><span class="nx">slice</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="nx">a</span><span class="p">.</span><span class="nx">length</span><span class="p">)</span>
+<span class="p">[</span> <span class="s1">&#39;banana&#39;</span><span class="p">,</span> <span class="s1">&#39;kiwi&#39;</span> <span class="p">]</span></code></pre></div>
+
+<h2 id="interacting_with_objects">Взаимодецствие в объектами</h2>
+
+<p>Объект - не больше чем набор ключей и значений. Объект может быть создан при помощи инициализатора или (специального синтаксиса). Свойства могут быть заданы через точку:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="o">&gt;</span> <span class="kd">var</span> <span class="nx">o</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="kc">undefined</span>
+
+<span class="o">&gt;</span> <span class="nx">o</span><span class="p">.</span><span class="nx">foo</span>
+<span class="kc">undefined</span>
+
+<span class="o">&gt;</span> <span class="nx">o</span><span class="p">.</span><span class="nx">foo</span> <span class="o">=</span> <span class="s1">&#39;bar&#39;</span>
+<span class="s1">&#39;bar&#39;</span>
+
+<span class="o">&gt;</span> <span class="nx">o</span><span class="p">.</span><span class="nx">foo</span><span class="p">.</span><span class="nx">length</span>
+<span class="mi">3</span></code></pre></div>
+
+<p>Синтасксис массива (скобки) могут позволить вам создавать свойства объекта с содержанием спец. символов, но без скобок вы уже не сможете получить к ним доступ через точку. Интересно отметить, что объекты в JavaScript могут иметь любое значение как и ключи, и являться не только строками или числами.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="o">&gt;</span> <span class="nx">o</span><span class="p">[</span><span class="s1">&#39;foo^bar&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;things&#39;</span>
+<span class="s1">&#39;things&#39;</span>
+
+<span class="o">&gt;</span> <span class="nx">o</span><span class="p">[</span><span class="s1">&#39;foo^bar&#39;</span><span class="p">]</span>
+<span class="s1">&#39;things&#39;</span>
+
+<span class="o">&gt;</span> <span class="nx">o</span><span class="p">.</span><span class="nx">foo</span><span class="o">^</span><span class="nx">bar</span> <span class="c1">//не будет работать из-за специального символа</span>
+<span class="nx">ReferenceError</span><span class="o">:</span> <span class="nx">bar</span> <span class="nx">is</span> <span class="nx">not</span> <span class="nx">defined</span>
+    <span class="nx">at</span> <span class="nx">repl</span><span class="o">:</span><span class="mi">1</span><span class="o">:</span><span class="mi">8</span>
+    <span class="nx">at</span> <span class="nx">REPLServer</span><span class="p">.</span><span class="nx">self</span><span class="p">.</span><span class="nb">eval</span> <span class="p">(</span><span class="nx">repl</span><span class="p">.</span><span class="nx">js</span><span class="o">:</span><span class="mi">110</span><span class="o">:</span><span class="mi">21</span><span class="p">)</span>
+    <span class="nx">at</span> <span class="nx">Interface</span><span class="p">.</span><span class="o">&lt;</span><span class="nx">anonymous</span><span class="o">&gt;</span> <span class="p">(</span><span class="nx">repl</span><span class="p">.</span><span class="nx">js</span><span class="o">:</span><span class="mi">239</span><span class="o">:</span><span class="mi">12</span><span class="p">)</span>
+    <span class="nx">at</span> <span class="nx">Interface</span><span class="p">.</span><span class="nx">EventEmitter</span><span class="p">.</span><span class="nx">emit</span> <span class="p">(</span><span class="nx">events</span><span class="p">.</span><span class="nx">js</span><span class="o">:</span><span class="mi">95</span><span class="o">:</span><span class="mi">17</span><span class="p">)</span>
+    <span class="nx">at</span> <span class="nx">Interface</span><span class="p">.</span><span class="nx">_onLine</span> <span class="p">(</span><span class="nx">readline</span><span class="p">.</span><span class="nx">js</span><span class="o">:</span><span class="mi">202</span><span class="o">:</span><span class="mi">10</span><span class="p">)</span>
+    <span class="nx">at</span> <span class="nx">Interface</span><span class="p">.</span><span class="nx">_line</span> <span class="p">(</span><span class="nx">readline</span><span class="p">.</span><span class="nx">js</span><span class="o">:</span><span class="mi">531</span><span class="o">:</span><span class="mi">8</span><span class="p">)</span>
+    <span class="nx">at</span> <span class="nx">Interface</span><span class="p">.</span><span class="nx">_ttyWrite</span> <span class="p">(</span><span class="nx">readline</span><span class="p">.</span><span class="nx">js</span><span class="o">:</span><span class="mi">760</span><span class="o">:</span><span class="mi">14</span><span class="p">)</span>
+    <span class="nx">at</span> <span class="nx">ReadStream</span><span class="p">.</span><span class="nx">onkeypress</span> <span class="p">(</span><span class="nx">readline</span><span class="p">.</span><span class="nx">js</span><span class="o">:</span><span class="mi">99</span><span class="o">:</span><span class="mi">10</span><span class="p">)</span>
+    <span class="nx">at</span> <span class="nx">ReadStream</span><span class="p">.</span><span class="nx">EventEmitter</span><span class="p">.</span><span class="nx">emit</span> <span class="p">(</span><span class="nx">events</span><span class="p">.</span><span class="nx">js</span><span class="o">:</span><span class="mi">98</span><span class="o">:</span><span class="mi">17</span><span class="p">)</span>
+    <span class="nx">at</span> <span class="nx">emitKey</span> <span class="p">(</span><span class="nx">readline</span><span class="p">.</span><span class="nx">js</span><span class="o">:</span><span class="mi">1095</span><span class="o">:</span><span class="mi">12</span><span class="p">)</span></code></pre></div>
+
+<p>Что будет, если мы захотим, чтобы объект функции был ключом к свйоству объекта? Такое тоже возможно! Если вы не понимайте синтаксис функций, то не беспокойтесь, разъяснения последуют немного позже.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="o">&gt;</span> <span class="kd">var</span> <span class="nx">x</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="mi">101</span><span class="p">;</span> <span class="p">}</span>
+<span class="kc">undefined</span>
+<span class="o">&gt;</span> <span class="kd">var</span> <span class="nx">o</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="kc">undefined</span>
+<span class="o">&gt;</span> <span class="nx">o</span><span class="p">[</span><span class="nx">x</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="mi">1</span>
+<span class="o">&gt;</span> <span class="nx">o</span><span class="p">[</span><span class="nx">x</span><span class="p">]</span>
+<span class="mi">1</span>
+<span class="o">&gt;</span> <span class="nx">x</span><span class="p">()</span> <span class="c1">//посмотрите, это просто функция!</span>
+<span class="mi">101</span></code></pre></div>
+
+<p>Синтаксис массива <code>o['foo']</code> и синтаксис свойства через точку <code>o.foo</code> могут взаимозаменять друг друга для простых строковых значений.</p>
+
+<p>Важно! Объекты могут состоять из других объектов (содержать свойства, ссылающиеся на другой объект):</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="o">&gt;</span> <span class="nx">o</span><span class="p">.</span><span class="nx">bar</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>
+<span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>
+
+<span class="o">&gt;</span> <span class="nx">o</span><span class="p">.</span><span class="nx">bar</span><span class="p">.</span><span class="nx">length</span>
+<span class="mi">4</span>
+
+<span class="o">&gt;</span> <span class="nx">o</span><span class="p">.</span><span class="nx">foobar</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="s1">&#39;foo bar!&#39;</span><span class="p">;</span> <span class="p">}</span>
+<span class="p">[</span><span class="nb">Function</span><span class="p">]</span>
+
+<span class="o">&gt;</span> <span class="nx">o</span><span class="p">.</span><span class="nx">foobar</span><span class="p">()</span>
+<span class="s1">&#39;foo bar!&#39;</span>
+
+<span class="o">&gt;</span> <span class="nx">o</span><span class="p">[</span><span class="s1">&#39;foobar&#39;</span><span class="p">]()</span>
+<span class="s1">&#39;foo bar!&#39;</span></code></pre></div>
+
+<h2 id="creating_and_calling_functions">Создание и вызов функций</h2>
+
+<p>JavaScript функции могут быть объявлены через ключевое слово <code>function</code>. Данный код ниже создаст функции foo и bar, которые ничего не делают:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="o">&gt;</span> <span class="kd">var</span> <span class="nx">foo</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{}</span> <span class="c1">// это называется `function expression`</span>
+<span class="kc">undefined</span>
+
+<span class="o">&gt;</span> <span class="nx">foo</span>
+<span class="p">[</span><span class="nb">Function</span><span class="p">]</span>
+
+<span class="o">&gt;</span> <span class="kd">function</span> <span class="nx">bar</span> <span class="p">()</span> <span class="p">{}</span> <span class="c1">// это же зовется `function declaration`</span>
+<span class="kc">undefined</span>
+
+<span class="o">&gt;</span> <span class="nx">bar</span>
+<span class="p">[</span><span class="nb">Function</span><span class="o">:</span> <span class="nx">bar</span><span class="p">]</span></code></pre></div>
+
+<p>Оба способа `declarations` и `expressions` определяют фунции одинаково. Если вы используете `function declaration`, то сможете вызывать функцию в коде выше, перед ее определением. Но эта практика не рекомендуется.</p>
+<p>Если вы запутались в этих двух понятиях, то лучше распросите преподавателя</p>
+
+<p>Рекомендуется всегда использовать `function expression`, если вы не понимаете `function hoisting`(<a href="http://www.adequatelygood.com/JavaScript-Scoping-and-Hoisting.html">Продолжить чтение</a>).</p>
+
+<p>Функции, которые не имеют имени зовуться анонимными. Для примера, <code>function () { }</code> считается анонимной. Они обычно используются в качестве аргументов обратного вызова для других функций или событий.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="c1">// объявляет функцию, которая принимает аргумент обратного вызова</span>
+<span class="o">&gt;</span> <span class="kd">var</span> <span class="nx">foo</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+<span class="p">...</span>     <span class="nx">callback</span><span class="p">();</span>
+<span class="p">...</span> <span class="p">}</span>
+<span class="kc">undefined</span>
+
+<span class="c1">// передача анонимной функции в качестве обратного вызова</span>
+<span class="o">&gt;</span> <span class="nx">foo</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+<span class="p">...</span>     <span class="c1">// тело функции обратного вызова</span>
+<span class="p">...</span> <span class="p">});</span>
+<span class="kc">undefined</span></code></pre></div>
+
+<h2 id="multiline_statements_in_the_repl">Многостроные операторы в REPL</h2>
+
+<p>Возможно, вы заметили что Node.js REPL позволяет выполнять многострочные операторы. Когда строка не может быть обработана как единый оператор JavaScript, то Node.js REPL запрашивает больше ввода с консоли, как показано при запуске объявления функции выше.</p>
+
+<p><code>...</code> указывает, что Node.js REPL ожидает дополнительного ввода. <code>CTRL+C</code> может использоваться для отмены многострочного оператора, если он был сделан с ошибкой.</p>
+
+<p>Давайте определим многострочную функцию и выполним ее:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="o">&gt;</span> <span class="kd">var</span> <span class="nx">boo</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+<span class="p">...</span>     <span class="k">return</span> <span class="s2">&quot;Hello World!&quot;</span><span class="p">;</span>
+<span class="p">...</span> <span class="p">}</span>
+<span class="kc">undefined</span>
+
+<span class="o">&gt;</span> <span class="nx">boo</span><span class="p">()</span>
+<span class="s1">&#39;Hello World!&#39;</span></code></pre></div>
+
+<h2 id="exiting_the_nodejs_repl">Выход из Node.js REPL</h2>
+
+<p>Выход из Node.js REPL может быть выполнен с помощью клавиатуры или отключения процесса.</p>
+
+<p>Для выхода с помощью клавиатуры нажмите дважды<code>CTRL+C</code>.</p>
+
+<p>Чтобы отключить процесс Node.js:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="o">&gt;</span> <span class="nx">process</span><span class="p">.</span><span class="nx">exit</span><span class="p">()</span></code></pre></div>
+
+
+    <div id="next">
+      
+        <div class="continue">
+          <a href="shell.html">
+            <!-- Please don't just skip through these, actually do the labs! -->
+              Так держать! Продолжение в следующей лабораторной работе.
+            <span>Node.js Shell</span>
+          </a>
+        </div>
+      
+    </div>
+    <div id="footer">
+        <p>Labs created by <a href="https://twitter.com/joeandaverde">@joeandaverde</a></p>
+        <p>Учебный материал переведен <a href="https://t.me/Rat_Z">@Rat_Z</a> и <a href="https://t.me/Alex_Ebenrode">@Alex_Ebenrode</a></p>
+    </div>
+  </body>
+
+<!-- Mirrored from www.nodelabs.org/repl.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 04 Sep 2017 18:01:54 GMT -->
+</html>

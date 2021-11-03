@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+  
+<!-- Mirrored from www.nodelabs.org/express.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 04 Sep 2017 18:01:56 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=utf-8" /><!-- /Added by HTTrack -->
+<head>
+    <title>Экспресс-платформа веб-приложений - Node Labs</title>
+    <link href="css/post.css" rel="stylesheet" type="text/css"/>
+    <link href="css/pygments.css" rel="stylesheet" type="text/css"/>
+    <link href='http://fonts.googleapis.com/css?family=Droid+Sans:400,700|Droid+Sans+Mono' rel='stylesheet' type='text/css' />
+
+    <script src="../ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src="../cdn.jsdelivr.net/jquery.cookie/1.3.1/jquery.cookie.js"></script>
+    <script src="../nodelabs.herokuapp.com/socket.io/socket.io.html"></script>
+    <script src="js/unlock.js"></script>
+    <script type="text/javascript">
+
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','../www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-35011668-1', 'nodelabs.org');
+      ga('require', 'linkid', 'linkid.html');
+      ga('send', 'pageview');
+
+    </script>
+  </head>
+  <body>
+
+    <div id="header">
+      <a href="index.html" title="Take me home!"><img src="css/img/logotype_dark.png" /></a>
+    </div>
+
+    <h1 id="express-web-application-framework">Экспресс-платформа веб-приложений</h1>
+
+<p>Express - простой фреймворк для создания веб-приложений на Node. Эта лаба продемонстрирует, как структурировать простое Express приложение.</p>
+
+<h2 id="bootstrapping-express">Bootstrapping Express</h2>
+
+<p>Express требует небольшой конфигурации для того, чтобы начать. Для начала давайте приглядимся к обслуживанию HTML-страницы. Это не требует никаких аддонов к Express'у или сложным конфигурациям.</p>
+
+<p>Создайте новый каталог для этой лабы. Нам нужно установить Express NPM модуль. Для начала этого процесса сгенерируем файл <code>package.json</code>, используя следующие команды из нового каталога:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">&gt; npm init</code></pre></div>
+
+<p>Запустите, подставля любые значения, которые вам нравятся. Следуем дальше с установкой Express модуля:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">&gt; npm install express --save</code></pre></div>
+
+<p>Добавим Express модуль в ваш файл <code>package.json</code> (подому что предусмотрена –save). Это позволит вам просто установить npm в будущем, чтобы вытащить необходимые зависимости для старта приложения.</p>
+
+<p>Сейчас создайте файл <code>server.js</code> – этот файл будет бутстрапом нашего Express-базированного приложения.</p>
+
+<p>Здесь простейшее приложение:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">express</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;express&#39;</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">app</span> <span class="o">=</span> <span class="nx">express</span><span class="p">();</span>
+
+<span class="nx">app</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+	<span class="nx">res</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="s1">&#39;Hello World!&#39;</span><span class="p">);</span>
+<span class="p">});</span>
+
+<span class="nx">app</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">3000</span><span class="p">);</span></code></pre></div>
+
+<p>Сейчас запустим сервер простым запуском со следующими командами в <code>http://localhost:3000/</code>.</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">&gt; node server.js</code></pre></div>
+
+<h2 id="we-need-more">Мы можем больше!</h2>
+
+<p>Все верно, так мы отвечаем на каждый запрос из корневого пути с <code>Hello World!</code>, сейчас попробуем ввести шаблонный движок.</p>
+
+<p>Выберем популярный шаблонный движок <a href="https://www.npmjs.org/package/jade">Jade</a>. Чтобы добавить Jade функционал, давайте установим модуль и сохраним его в <code>package.json</code>.</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">&gt; npm install jade --save</code></pre></div>
+
+<p>Сейчас, когда модуль установлен, нужно настроить Express для отображения наших представлений. Сделаем это, используя функцию <code>app.engine</code>.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">express</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;express&#39;</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">app</span> <span class="o">=</span> <span class="nx">express</span><span class="p">();</span>
+
+<span class="nx">app</span><span class="p">.</span><span class="nx">engine</span><span class="p">(</span><span class="s1">&#39;jade&#39;</span><span class="p">,</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;jade&#39;</span><span class="p">).</span><span class="nx">__express</span><span class="p">);</span>
+
+<span class="nx">app</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+	<span class="nx">res</span><span class="p">.</span><span class="nx">render</span><span class="p">(</span><span class="s1">&#39;index.jade&#39;</span><span class="p">);</span>
+<span class="p">});</span>
+
+<span class="nx">app</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">3000</span><span class="p">);</span></code></pre></div>
+
+<p>В этой точке нам нужно добавить каталог <code>views</code> и создать файл <code>index.jade</code> со следующим содержанием:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="nx">html</span>
+   <span class="nx">head</span>
+      <span class="nx">title</span> <span class="nx">The</span> <span class="nx">page</span> <span class="nx">title</span>
+   <span class="nx">body</span> <span class="nx">Hello</span> <span class="nx">world</span> <span class="nx">from</span> <span class="nx">Jade</span><span class="o">!</span></code></pre></div>
+
+<p>Сейчас пополним данными для представления. Это можно сделать, передавая второй аргумент к <code>render</code>, вызванный в <code>server.js</code>.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">express</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;express&#39;</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">app</span> <span class="o">=</span> <span class="nx">express</span><span class="p">();</span>
+
+<span class="nx">app</span><span class="p">.</span><span class="nx">engine</span><span class="p">(</span><span class="s1">&#39;jade&#39;</span><span class="p">,</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;jade&#39;</span><span class="p">).</span><span class="nx">__express</span><span class="p">);</span>
+
+<span class="nx">app</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+	<span class="nx">res</span><span class="p">.</span><span class="nx">render</span><span class="p">(</span><span class="s1">&#39;index.jade&#39;</span><span class="p">,</span> <span class="p">{</span><span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;Joe&#39;</span><span class="p">});</span>
+<span class="p">});</span>
+
+<span class="nx">app</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">3000</span><span class="p">);</span></code></pre></div>
+
+<p> Сейчас используем этот объект в <code>index.jade</code>. Возьмем на заметку знак <code>=</code>. Это позволит вам вывести значение с правой стороны страницы.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="nx">html</span>
+   <span class="nx">head</span>
+      <span class="nx">title</span> <span class="nx">The</span> <span class="nx">title</span> <span class="nx">goes</span> <span class="nx">here</span><span class="o">!</span>
+   <span class="nx">body</span>
+      <span class="nx">p</span> <span class="nx">Hello</span>
+      <span class="nx">h2</span><span class="o">=</span> <span class="nx">name</span></code></pre></div>
+
+<p>Существует множество информации для изучения Jade и Express. Посетите соответствующие сайты, чтобы узнать больше.</p>
+
+
+
+    <div id="next">
+      
+        <div class="continue">
+          <a href="javascript-must-knows.html">
+            <!-- Please don't just skip through these, actually do the labs! -->
+            Так держать! Продолжение в следующей лабе.
+            <span>Обязательный JavaScript</span>
+          </a>
+        </div>
+      
+    </div>
+    <div id="footer">
+        <p>Labs created by <a href="https://twitter.com/joeandaverde">@joeandaverde</a></p>
+        <p>Учебный материал переведен <a href="https://t.me/Rat_Z">@Rat_Z</a> и <a href="https://t.me/Alex_Ebenrode">@Alex_Ebenrode</a></p>
+    </div>
+  </body>
+
+<!-- Mirrored from www.nodelabs.org/express.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 04 Sep 2017 18:01:57 GMT -->
+</html>

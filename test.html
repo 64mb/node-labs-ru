@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/html">
+  
+<!-- Mirrored from www.nodelabs.org/test.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 04 Sep 2017 18:01:56 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=utf-8" /><!-- /Added by HTTrack -->
+<head>
+    <title>Тестирование с помощью Mocha - Node Labs</title>
+    <link href="css/post.css" rel="stylesheet" type="text/css"/>
+    <link href="css/pygments.css" rel="stylesheet" type="text/css"/>
+    <link href='http://fonts.googleapis.com/css?family=Droid+Sans:400,700|Droid+Sans+Mono' rel='stylesheet' type='text/css' />
+
+    <script src="../ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src="../cdn.jsdelivr.net/jquery.cookie/1.3.1/jquery.cookie.js"></script>
+    <script src="../nodelabs.herokuapp.com/socket.io/socket.io.html"></script>
+    <script src="js/unlock.js"></script>
+    <script type="text/javascript">
+
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','../www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-35011668-1', 'nodelabs.org');
+      ga('require', 'linkid', 'linkid.html');
+      ga('send', 'pageview');
+
+    </script>
+  </head>
+  <body>
+
+    <div id="header">
+      <a href="index.html" title="Take me home!"><img src="css/img/logotype_dark.png" /></a>
+    </div>
+
+    <h1 id="testing-with-mocha">Тестирование с помощью Mocha</h1>
+
+<p>Как TRUE-программисты, вы должны уметь писать тесты для обеспечения правильности вашего программного обеспечения. Это особенно необходимо, когда речь идет о языке с динамической типизацией как JavaScript. <br><br> При написании функции мы обычно представляем, что она должна делать, какое значение на каких аргументах выдавать.
+
+    В процессе разработки мы время от времени проверяем, правильно ли работает функция. Самый простой способ проверить – это запустить её, например в консоли, и посмотреть результат.
+
+    Если что-то не так, поправить, опять запустить – посмотреть результат… И так «до победного конца».
+
+    Но такие ручные запуски – очень несовершенное средство проверки.
+
+    <br><br>Когда проверяешь работу кода вручную – легко его «недотестировать». <br><br>Существует несколько хороших тестовых сценариев для JavaScript, но в этой ЛР вы познакомитесь с <a href="https://github.com/visionmedia/mocha">Mocha (произносится Мокко(а) - вид кофе, сокращенно от Моккачино)</a> используя тесты для <a href="http://ru.wikihow.com/%D0%B8%D0%B3%D1%80%D0%B0%D1%82%D1%8C-%D0%B2-%D0%B1%D0%BE%D1%83%D0%BB%D0%B8%D0%BD%D0%B3">Игры в боулинг</a>.</p>
+
+<ul>
+  <li><a href="#intro_to_mocha">Введение в Mocha</a></li>
+  <li><a href="#assertions">Assertions (Попытка выполнения кода, проверки)</a></li>
+  <li><a href="#setup">Установка</a></li>
+  <li><a href="#the_bowling_kata">Набор тестов игры в боулинг</a></li>
+</ul>
+
+<h2 id="intro_to_mocha">Введение в Mocha</h2>
+
+<p>Mocha - это очень универсальная платформа тестирования имеющая множество сценариев использования, но мы сосредоточимся на BDD (см. <a href="http://en.wikipedia.org/wiki/Behavior-driven_development">Поведенческая разработка</a>) способе. Группы тестов определяются функцией <code>describe()</code> а индивидуальное поведение определяется методом <code>it()</code>. Например:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="nx">describe</span><span class="p">(</span><span class="s1">&#39;my module&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+  <span class="nx">before</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="c1">// Начальные настройки</span>
+  <span class="p">});</span>
+
+  <span class="nx">it</span><span class="p">(</span><span class="s1">&#39;should do amazing things&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+     <span class="c1">// Вызовы кода здесь</span>
+  <span class="p">});</span>
+
+  <span class="nx">after</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="c1">// Какие-либо экстренные вызовы</span>
+  <span class="p">});</span>
+<span class="p">});</span></code></pre></div>
+
+<p>Если вам необходимо выполнить какую-либо настройку или эксетрнное исполнение перед всеми вызовами, вы можете использовать <code>before</code> или <code>after</code> функции соответственно. Точно так же, <code>beforeEach</code> и <code>afterEach</code> будут срабатывать после КАЖДОГО вызова.</p>
+
+<h2 id="assertions">Assertions (Попытка выполнения кода, проверки)</h2>
+
+<p>Есть несколько замечательных сторонних библиотек для использования Assertion, например <a href="https://github.com/visionmedia/should.js/">Should</a>. Однако, встроенный модуль <a href="http://nodejs.org/api/assert.html">assert</a> также выполняет свою работу, и его достаточно, чтобы выполнить данную ЛР.</p>
+
+<h2 id="setup">Установка</h2>
+
+<p>Создайте пустую папку <code>test-lab</code>. Внутри папки <code>test-lab</code> запустите <code>npm init</code>. Затем, выполните команду <code>npm install --save-dev mocha</code> для установки mocha в качестве зависимостей разработки. В завершение, откройте файл <code>package.json</code> и замените команду над <code>scripts.test</code> на <code>node_modules/.bin/mocha tests --recursive</code>. Как только вы это сделаете, ваш файл <code>package.json</code> будет выглядеть примерно так:</p>
+
+<p><strong>Примечание:</strong> Если вы выполняете код в ОС Windows, обязательно измените разделители путей в команде <code>test</code> на два обратных слэша: <code>node_modules\\.bin\\mocha tests --recursive</code></p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="p">{</span>
+  <span class="s2">&quot;name&quot;</span><span class="o">:</span> <span class="s2">&quot;test-lab&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;version&quot;</span><span class="o">:</span> <span class="s2">&quot;0.0.0&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;main&quot;</span><span class="o">:</span> <span class="s2">&quot;index.js&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;scripts&quot;</span><span class="o">:</span> <span class="p">{</span>
+    <span class="s2">&quot;test&quot;</span><span class="o">:</span> <span class="s2">&quot;node_modules/.bin/mocha tests --recursive&quot;</span>
+  <span class="p">},</span>
+  <span class="s2">&quot;repository&quot;</span><span class="o">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;author&quot;</span><span class="o">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;license&quot;</span><span class="o">:</span> <span class="s2">&quot;BSD&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;devDependencies&quot;</span><span class="o">:</span> <span class="p">{</span>
+    <span class="s2">&quot;mocha&quot;</span><span class="o">:</span> <span class="s2">&quot;~1.9.0&quot;</span>
+  <span class="p">}</span>
+<span class="p">}</span></code></pre></div>
+
+<p>Теперь создайте папку <code>tests</code> и файл внутри с именем <code>bowling-spec.js</code>. Если вы выполните <code>npm test</code> в этот момент npm вызовет ваш тестовый скрипт, выполнив mocha и выведет результат:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">&gt; npm <span class="nb">test</span>
+f
+&gt; bowling@0.0.0 <span class="nb">test</span> /Users/joe/Code/bowling
+&gt; node_modules/.bin/mocha tests --recursive
+
+<span class="m">0</span> passing <span class="o">(</span>1ms<span class="o">)</span></code></pre></div>
+
+<h2 id="the_bowling_kata">Игра в боулинг</h2>
+
+<p>Для тестирования подсчета очков игры в боулинг мы и будем использовать спецификации mocha, чтобы управлять работой модуля, который представляет из себя игру
+    в боулинг. Модуль должен реализовывать функцию <code>score()</code> которая вычисляет текущий балл игры на основе кеглей, сбитых в каждом из фреймов (ход).
+    <br><br>Максимальное количество очков, которые можно набрать в одном фрейме, равно 30 (в том случае, если за страйком следуют еще два страйка), а целиком за игру —
+    300 очков, то есть двенадцать страйков подряд. Максимальное количество бросков при игре в боулинг может достигать 12, в зависимости от того, как вы сыграете
+    на 10-м фрейме. Игры с количеством максимальным количеством очков (300) называются perfect game («идеальная игра»).
+    <br><br>Очки, набранные в каждом фрейме, рассчитываются как сумма сбитых в данном фрейме кеглей и призовых очков. За открытые фреймы, где не были сбиты все кегли,
+    начисляется количество очков, равное лишь количеству сбитых кеглей. Призовые очки игрок получает, только если он сделал страйк или выбыл спэр. Один страйк оценивается в 10 очков плюс призовые очки, равные числу кеглей, сбитых игроком за последующие два броска шара.
+    За SPARE начисляется 10 очков плюс число кеглей, сбитых игроком при последующем броске шара. Прошли времена, когда нужно было вести таблицу очков вручную,
+    поэтому сейчас эти тонкости за вас посчитает компьютерная система, которую вы и должны реализовать в данной ЛР.
+    <br><br>Знаком «X» обозначается STRIKE, а SPARE — «/». В том случае, если ни один шар не сбит, ставится прочерк (-). Сплит принято обозначать как «O».
+    <br><br>Проверьте себя в следующий раз, когда будете играть в боулинг, если вам необходимо освежить правила набора очков, посетите <a href="http://slocums.homestead.com/gamescore.html">подсчет очков в боулинге</a>.</p>
+
+<p>Создайте папку с именем <code>source</code> и файл <code>bowling.js</code> внутри этой папки. Итак, начнем с файла <code>source/bowling.js</code>:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">BowlingGame</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+   <span class="k">this</span><span class="p">.</span><span class="nx">rolls</span> <span class="o">=</span> <span class="p">[];</span><span class="c1">// здесь храним очки каждого броска</span>
+<span class="p">};</span>
+
+<span class="nx">BowlingGame</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">roll</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">pins</span><span class="p">)</span> <span class="p">{</span>
+   <span class="c1">// обработка броска</span>
+<span class="p">};</span>
+
+<span class="nx">BowlingGame</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">score</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+   <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="nx">module</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="nx">BowlingGame</span><span class="p">;</span></code></pre></div>
+
+<p>Теперь перейдем к тестам <code>tests/bowling-spec.js</code> которые могут выглядеть так:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">assert</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;assert&#39;</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">BowlingGame</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;../source/bowling&#39;</span><span class="p">);</span>
+
+<span class="nx">describe</span><span class="p">(</span><span class="s1">&#39;Bowling scorer&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+
+   <span class="nx">beforeEach</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+      <span class="k">this</span><span class="p">.</span><span class="nx">game</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">BowlingGame</span><span class="p">();</span>
+   <span class="p">});</span>
+
+   <span class="c1">// Данный тест должен быть пройден (проверка на очки)</span>
+   <span class="nx">it</span><span class="p">(</span><span class="s1">&#39;should return a score of 0 if no pins have been knocked down&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+      <span class="kd">var</span> <span class="nx">score</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">game</span><span class="p">.</span><span class="nx">score</span><span class="p">();</span>
+      <span class="nx">assert</span><span class="p">.</span><span class="nx">equal</span><span class="p">(</span><span class="nx">score</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+   <span class="p">});</span>
+
+   <span class="c1">// Данный тест должен быть завален</span>
+   <span class="nx">it</span><span class="p">(</span><span class="s1">&#39;should return a score of 1 if 1 pin has been knocked down&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+      <span class="k">this</span><span class="p">.</span><span class="nx">game</span><span class="p">.</span><span class="nx">roll</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+      <span class="kd">var</span> <span class="nx">score</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">game</span><span class="p">.</span><span class="nx">score</span><span class="p">();</span>
+      <span class="nx">assert</span><span class="p">.</span><span class="nx">equal</span><span class="p">(</span><span class="nx">score</span><span class="p">,</span> <span class="mi">1</span><span class="p">);</span>
+   <span class="p">});</span>
+
+<span class="p">});</span></code></pre></div>
+
+<p>Результат запуска NPM теста должен выглядеть так:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">&gt; npm <span class="nb">test</span>
+
+&gt; bowling@0.0.0 <span class="nb">test</span> /Users/joe/Code/bowling
+&gt; node_modules/.bin/mocha tests --recursive
+  ․․
+
+  <span class="m">1</span> passing <span class="o">(</span>4ms<span class="o">)</span>
+  <span class="m">1</span> failing
+
+  1<span class="o">)</span> Bowling scorer should <span class="k">return</span> a score of <span class="m">1</span> <span class="k">if</span> <span class="m">1</span> pin has been knocked down:
+     AssertionError: <span class="nv">0</span> <span class="o">==</span> 1
+      at Context.&lt;anonymous&gt; <span class="o">(</span>/Users/joe/Code/bowling/tests/bowling-spec.js:18:14<span class="o">)</span>
+      at Test.Runnable.run <span class="o">(</span>/Users/joe/Code/bowling/node_modules/mocha/lib/runnable.js:221:32<span class="o">)</span>
+      at Runner.runTest <span class="o">(</span>/Users/joe/Code/bowling/node_modules/mocha/lib/runner.js:374:10<span class="o">)</span>
+      at /Users/joe/Code/bowling/node_modules/mocha/lib/runner.js:452:12
+      at next <span class="o">(</span>/Users/joe/Code/bowling/node_modules/mocha/lib/runner.js:299:14<span class="o">)</span>
+      at /Users/joe/Code/bowling/node_modules/mocha/lib/runner.js:309:7
+      at next <span class="o">(</span>/Users/joe/Code/bowling/node_modules/mocha/lib/runner.js:247:23<span class="o">)</span>
+      at /Users/joe/Code/bowling/node_modules/mocha/lib/runner.js:271:7
+      at Hook.Runnable.run <span class="o">(</span>/Users/joe/Code/bowling/node_modules/mocha/lib/runnable.js:223:5<span class="o">)</span>
+      at next <span class="o">(</span>/Users/joe/Code/bowling/node_modules/mocha/lib/runner.js:259:10<span class="o">)</span>
+      at Object._onImmediate <span class="o">(</span>/Users/joe/Code/bowling/node_modules/mocha/lib/runner.js:276:5<span class="o">)</span>
+      at processImmediate <span class="o">[</span>as _immediateCallback<span class="o">]</span> <span class="o">(</span>timers.js:330:15<span class="o">)</span>
+
+npm ERR! weird error 1
+npm ERR! not ok code 0</code></pre></div>
+
+<p>Теперь создайте оставшуюся часть поведения кода и внесите остальную часть счетчика очков.</p>
+
+
+    <div id="next">
+      
+        <div class="continue">
+          <a href="data-storage.html">
+            <!-- Please don't just skip through these, actually do the labs! -->
+              Так держать! Переходите к следующей ЛР.
+            <span>Хранение данных</span>
+          </a>
+        </div>
+      
+    </div>
+    <div id="footer">
+        <p>Labs created by <a href="https://twitter.com/joeandaverde">@joeandaverde</a></p>
+        <p>Учебный материал переведен <a href="https://t.me/Rat_Z">@Rat_Z</a> и <a href="https://t.me/Alex_Ebenrode">@Alex_Ebenrode</a></p>
+    </div>
+  </body>
+
+<!-- Mirrored from www.nodelabs.org/test.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 04 Sep 2017 18:01:56 GMT -->
+</html>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+  
+<!-- Mirrored from www.nodelabs.org/streams.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 04 Sep 2017 18:01:57 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=utf-8" /><!-- /Added by HTTrack -->
+<head>
+    <title>Потоки - Node Labs</title>
+    <link href="css/post.css" rel="stylesheet" type="text/css"/>
+    <link href="css/pygments.css" rel="stylesheet" type="text/css"/>
+    <link href='http://fonts.googleapis.com/css?family=Droid+Sans:400,700|Droid+Sans+Mono' rel='stylesheet' type='text/css' />
+
+    <script src="../ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src="../cdn.jsdelivr.net/jquery.cookie/1.3.1/jquery.cookie.js"></script>
+    <script src="../nodelabs.herokuapp.com/socket.io/socket.io.html"></script>
+    <script src="js/unlock.js"></script>
+    <script type="text/javascript">
+
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','../www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-35011668-1', 'nodelabs.org');
+      ga('require', 'linkid', 'linkid.html');
+      ga('send', 'pageview');
+
+    </script>
+  </head>
+  <body>
+
+    <div id="header">
+      <a href="index.html" title="Take me home!"><img src="css/img/logotype_dark.png" /></a>
+    </div>
+
+    <h1 id="streams">Потоки</h1>
+
+<p>Потоки - одна из самых удивительных особенностей Node. Однако, это не новость. *nix системы, использующие I/O потоки для перемещения данных из одного процесса в другой.</p>
+
+<h2 id="read-streams">Чтение потоков</h2>
+
+<p>Первый поток, который мы обсудим, представляет собой поток чтения. Как вы могли ожидать, этот поток поддерживает только чтение. Давайте рассмотрим пример.</p>
+
+<p>Начнем с создания файла с именем <code>example.txt</code> и добавим любое содержимое, которое вам нравится. Создайте еще один файл <code>readable.js</code> и добавьте следующее:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">fs</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;fs&#39;</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">rs</span> <span class="o">=</span> <span class="nx">fs</span><span class="p">.</span><span class="nx">createReadStream</span><span class="p">(</span><span class="s1">&#39;./example.txt&#39;</span><span class="p">);</span>
+
+<span class="nx">rs</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+   <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">data</span><span class="p">.</span><span class="nx">toString</span><span class="p">());</span>
+<span class="p">});</span>
+
+<span class="nx">rs</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+   <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">);</span>
+<span class="p">});</span></code></pre></div>
+
+<p>Теперь, когда мы использовали читаемый поток, напишем наш собственный..</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">Readable</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;stream&#39;</span><span class="p">).</span><span class="nx">Readable</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">util</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;util&#39;</span><span class="p">);</span>
+<span class="nx">util</span><span class="p">.</span><span class="nx">inherits</span><span class="p">(</span><span class="nx">TeamStream</span><span class="p">,</span> <span class="nx">Readable</span><span class="p">);</span>
+
+<span class="kd">function</span> <span class="nx">TeamStream</span> <span class="p">()</span> <span class="p">{</span>
+    <span class="nx">Readable</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
+    <span class="kd">var</span> <span class="nx">best_sports_programs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;K-State Football&#39;</span><span class="p">,</span> <span class="s1">&#39;K-State Basketball&#39;</span><span class="p">,</span> <span class="s1">&#39;K-State Baseball&#39;</span><span class="p">];</span>
+    <span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">_read</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+        <span class="kd">var</span> <span class="nx">program</span> <span class="o">=</span> <span class="nx">best_sports_programs</span><span class="p">[</span><span class="nx">i</span><span class="o">++</span><span class="p">];</span>
+        <span class="k">this</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">program</span> <span class="o">||</span> <span class="kc">null</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="kd">var</span> <span class="nx">rs</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">TeamStream</span><span class="p">();</span>
+<span class="kd">var</span> <span class="nx">received</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+<span class="nx">rs</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">received</span><span class="o">++</span><span class="p">;</span>
+
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">data</span><span class="p">.</span><span class="nx">toString</span><span class="p">());</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="nx">received</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;pausing for some time&#39;</span><span class="p">);</span>
+        <span class="nx">rs</span><span class="p">.</span><span class="nx">pause</span><span class="p">();</span>
+        <span class="nx">setTimeout</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">resume</span><span class="p">();</span> <span class="p">},</span> <span class="mi">3000</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">});</span>
+
+<span class="nx">rs</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;ended&#39;</span><span class="p">);</span>
+<span class="p">});</span></code></pre></div>
+
+<p>В этом примере мы узнаем несколько разных вещей. Во-первых мы созданим новый читаемый поток. Фунция <code>TeamStream</code> наследует прототип из ядра Node <code>ReadableStream</code> и в этом конструкторе вызывает <code>ReadableStream</code>. Мы должны вызвать конструктор основной реализации, чтобы выполнить необходимую инициализацию нашего потока. Мы должны внедрить внутренний метод <code>_read</code> который вызывается для каждого запроса на чтение. В этом примере первый запрос на чтение выдается всякий раз, когда мы подписываемся на событие <code>'data'</code>. Есть и другие способы сделать это, что мы рассмотрим далее.</p>
+
+<p>В этом примере вы заметите, что мы можем контролировать поток данных из читаемого потока через <code>pause</code> и <code>resume</code>. Это невероятно важно, чтобы ваше приложение не отставало от входящих данных и получало данные только при необходимости.</p>
+
+<p>В приведенном выше примере данные считываются буфером. Однако у нас есть более точный контроль над тем, сколько данных мы получаем через метод <code>read</code>. Следующий пример даст вам представление о серии событий, возникающих при чтении из потока, который может предоставлять данные в разное время. Это именно та ситуация, когда дело касается сетевых подключений. Не стесняйтесь копировать и вставлять этот фрагмент. Изучите выход и поймите цепочку событий, прежде чем двигаться дальше.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">Readable</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;stream&#39;</span><span class="p">).</span><span class="nx">Readable</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">util</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;util&#39;</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">log</span> <span class="o">=</span>  <span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">startTime</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">().</span><span class="nx">getTime</span><span class="p">();</span>
+
+    <span class="k">return</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">msg</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kd">var</span> <span class="nx">now</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">().</span><span class="nx">getTime</span><span class="p">();</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;+&#39;</span> <span class="o">+</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span><span class="p">((</span><span class="nx">now</span> <span class="o">-</span> <span class="nx">startTime</span><span class="p">)</span> <span class="o">/</span> <span class="mi">1000</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="nx">msg</span><span class="p">);</span>
+    <span class="p">};</span>
+<span class="p">})();</span>
+
+<span class="nx">util</span><span class="p">.</span><span class="nx">inherits</span><span class="p">(</span><span class="nx">LetterStream</span><span class="p">,</span> <span class="nx">Readable</span><span class="p">);</span>
+
+<span class="kd">function</span> <span class="nx">LetterStream</span> <span class="p">()</span> <span class="p">{</span>
+    <span class="nx">Readable</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
+    <span class="kd">var</span> <span class="nx">letters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;aaaaaa&#39;</span><span class="p">,</span> <span class="s1">&#39;bbbbbb&#39;</span><span class="p">,</span> <span class="s1">&#39;cccccc&#39;</span><span class="p">,</span> <span class="s1">&#39;dddddd&#39;</span><span class="p">];</span>
+
+    <span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">_read</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+        <span class="nx">log</span><span class="p">(</span><span class="s1">&#39;Internal read called.&#39;</span><span class="p">);</span>
+        <span class="kd">var</span> <span class="nx">letter</span> <span class="o">=</span> <span class="nx">letters</span><span class="p">[</span><span class="nx">i</span><span class="o">++</span><span class="p">];</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nx">i</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+            <span class="kd">var</span> <span class="nx">that</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+            <span class="nx">setTimeout</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+                <span class="nx">log</span><span class="p">(</span><span class="s1">&#39;Pushing data async.&#39;</span><span class="p">);</span>
+                <span class="nx">that</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">letter</span><span class="p">);</span>
+            <span class="p">},</span> <span class="mi">2000</span><span class="p">);</span>
+        <span class="p">}</span>
+        <span class="k">else</span>
+        <span class="p">{</span>
+            <span class="nx">log</span><span class="p">(</span><span class="s1">&#39;Pushing data.&#39;</span><span class="p">);</span>
+            <span class="k">this</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">letter</span> <span class="o">||</span> <span class="kc">null</span><span class="p">);</span>
+        <span class="p">}</span>
+    <span class="p">};</span>
+<span class="p">};</span>
+
+<span class="kd">var</span> <span class="nx">rs</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">LetterStream</span><span class="p">();</span>
+
+<span class="nx">rs</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+    <span class="nx">log</span><span class="p">(</span><span class="s1">&#39;End&#39;</span><span class="p">);</span>
+<span class="p">});</span>
+
+<span class="nx">rs</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;readable&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+    <span class="nx">log</span><span class="p">(</span><span class="s1">&#39;Stream is readable&#39;</span><span class="p">);</span>
+
+    <span class="kd">var</span> <span class="nx">c</span><span class="p">;</span>
+    <span class="k">while</span> <span class="p">(</span><span class="nx">c</span> <span class="o">=</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">read</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+    <span class="p">{</span>
+        <span class="nx">log</span><span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="nx">toString</span><span class="p">());</span>
+    <span class="p">}</span>
+
+    <span class="nx">log</span><span class="p">(</span><span class="s1">&#39;Reached end of readable data available&#39;</span><span class="p">);</span>
+<span class="p">});</span>
+
+<span class="nx">log</span><span class="p">(</span><span class="s1">&#39;Reached end of program. It\&#39;s now alive because of async callbacks pending.&#39;</span><span class="p">);</span></code></pre></div>
+
+<p>Мы успешно прочитали 2 байта из нашего базового потока с каждой итерацией цикла. Несмотря на количество вызовов в <code>read</code>, мы только вызываем нашу внутреннюю функцию, когда нужны новые данные.</p>
+
+<h2 id="write-stream">Запись потоков</h2>
+
+<p>Примером использования записи потоков являются HTTP-ответы или стандартный вывод. Как <code>ReadableStream</code>, <code>WritableStream</code> имеет встроенный механизм ограничения скорости. Эти потоки осведомлены о том, когда базовый буфер был сброшен и предоставляют вызывающей стороне эту информацию. Это очень полезно, так что вы не видите больше, чем клиент может обрабатывать. Если клиент не может принять информацию достаточно быстро, он будет буферизован в памяти. Давайте рассмотрим простой пример широко используемого потока записи. Откроем node REPL и введем следующее:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="nx">process</span><span class="p">.</span><span class="nx">stdout</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span><span class="s1">&#39;Hello World&#39;</span><span class="p">);</span></code></pre></div>
+
+<p>Обратите внимание, что REPL вывел Hello World и результат вызова метода <code>true</code>.Возвращаемое значение указывает, можно ли немедленно сбросить буфер. Если возвращаемое значение является ложным, это означает, что данные должны быть буферизованы в памяти и позже будут сброшены. Истина означает, что данные были немедленно записаны и не буферизованы.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">WritableStream</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;stream&#39;</span><span class="p">).</span><span class="nx">Writable</span><span class="p">;</span>
+
+<span class="c1">// Настраивая HighWaterMark на 0 мы говорим, что базовый буфер необходимо немедленно очистить.</span>
+<span class="kd">var</span> <span class="nx">ws</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">WritableStream</span><span class="p">({</span> <span class="nx">highWaterMark</span><span class="o">:</span> <span class="mi">0</span><span class="p">});</span>
+
+<span class="nx">ws</span><span class="p">.</span><span class="nx">_write</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">data</span><span class="p">,</span> <span class="nx">enc</span><span class="p">,</span> <span class="nx">cb</span><span class="p">)</span> <span class="p">{</span>
+   <span class="c1">// Если в опциях не указано иное, выполняется строка, которую мы записываем дальше</span>
+   <span class="c1">// этот файл преобразуется в буфер.</span>
+   <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;Received&#39;</span><span class="p">,</span> <span class="nx">data</span><span class="p">);</span>
+
+   <span class="nx">setTimeout</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+      <span class="nx">process</span><span class="p">.</span><span class="nx">stdout</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span><span class="nx">data</span><span class="p">,</span> <span class="nx">enc</span><span class="p">,</span> <span class="nx">cb</span><span class="p">);</span>
+   <span class="p">},</span> <span class="mi">1000</span><span class="p">);</span>
+<span class="p">};</span>
+
+<span class="kd">var</span> <span class="nx">result</span> <span class="o">=</span> <span class="nx">ws</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span><span class="s1">&#39;This should be buffered\n&#39;</span><span class="p">);</span>
+
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;write return value&#39;</span><span class="p">,</span> <span class="nx">result</span><span class="p">);</span>
+
+<span class="c1">//Мы можем получить уведомление, когда базовый буфер был сброшен с помощью обратного вызова</span>
+
+<span class="nx">result</span> <span class="o">=</span> <span class="nx">ws</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span><span class="s1">&#39;This will also be buffered\n&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+   <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;We were notified about this buffer being flushed.&#39;</span><span class="p">);</span>
+<span class="p">});</span>
+
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;write (2) return value&#39;</span><span class="p">,</span> <span class="nx">result</span><span class="p">);</span></code></pre></div>
+
+<h2 id="pipe-streams-together">Pipe потоки вместе</h2>
+
+<p>Много похвалы уделяется node от сообщества за предоставление чрезвычайно простого интерфейса для объединения потоков вместе, используя <code>pipe</code>. Вы уже знаете, что ОС *nix обеспечивают возможность подключения стандартного вывода одного процесса к стандартным входам другого, используя <code>|</code>. Давайте посмотрим, как мы можем принять наш стандартный ввод и направить его в поток выходных процессов..</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="nx">process</span><span class="p">.</span><span class="nx">stdin</span><span class="p">.</span><span class="nx">pipe</span><span class="p">(</span><span class="nx">process</span><span class="p">.</span><span class="nx">stdout</span><span class="p">);</span></code></pre></div>
+
+<p>Мы можем протестировать это, разместив вышеуказанное содержимое в файле pipe.js и выполнив следующую команду оболочки.</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nb">echo</span> <span class="s1">&#39;This is going to be piped out&#39;</span> <span class="p">|</span> node pipe.js</code></pre></div>
+
+<p>Насколько это было легко! Если бы у нас не было <code>pipe</code>, то вот как мы выполнили бы ту же задачу. Вы можете видеть, что pipe много заботится о нас. То, чего вы не видите в этом примере, состоит в том, что<code>pipe</code> автоматически обрабатывает противодавление.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="nx">process</span><span class="p">.</span><span class="nx">stdin</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+   <span class="nx">process</span><span class="p">.</span><span class="nx">stdout</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span><span class="nx">data</span><span class="p">);</span>
+<span class="p">});</span></code></pre></div>
+
+
+
+    <div id="next">
+      
+        <div class="continue">
+          <a href="deploying.html">
+            <!-- Please don't just skip through these, actually do the labs! -->
+              Так держать! Перейдите к следующей ЛР.
+            <span>Настройка готового процесса Node.js</span>
+          </a>
+        </div>
+      
+    </div>
+    <div id="footer">
+        <p>Labs created by <a href="https://twitter.com/joeandaverde">@joeandaverde</a></p>
+        <p>Учебный материал переведен <a href="https://t.me/Rat_Z">@Rat_Z</a> и <a href="https://t.me/Alex_Ebenrode">@Alex_Ebenrode</a></p>
+    </div>
+  </body>
+
+<!-- Mirrored from www.nodelabs.org/streams.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 04 Sep 2017 18:01:58 GMT -->
+</html>

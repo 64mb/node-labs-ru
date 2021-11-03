@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+  
+<!-- Mirrored from www.nodelabs.org/async.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 04 Sep 2017 18:01:55 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=utf-8" /><!-- /Added by HTTrack -->
+<head>
+    <title>Ассинхронные шаблоны Node.js - Node Labs</title>
+    <link href="css/post.css" rel="stylesheet" type="text/css"/>
+    <link href="css/pygments.css" rel="stylesheet" type="text/css"/>
+    <link href='http://fonts.googleapis.com/css?family=Droid+Sans:400,700|Droid+Sans+Mono' rel='stylesheet' type='text/css' />
+
+    <script src="../ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src="../cdn.jsdelivr.net/jquery.cookie/1.3.1/jquery.cookie.js"></script>
+    <script src="../nodelabs.herokuapp.com/socket.io/socket.io.html"></script>
+    <script src="js/unlock.js"></script>
+    <script type="text/javascript">
+
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','../www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-35011668-1', 'nodelabs.org');
+      ga('require', 'linkid', 'linkid.html');
+      ga('send', 'pageview');
+
+    </script>
+  </head>
+  <body>
+
+    <div id="header">
+      <a href="index.html" title="Take me home!"><img src="css/img/logotype_dark.png" /></a>
+    </div>
+
+    <h1 id="asynchronous-patterns-in-nodejs">Ассинхронные шаблоны Node.js</h1>
+
+<h2 id="a-common-problem-and-solution">Простые проблемы и решения</h2>
+
+<p>Во-первых, давайте посмотрим на проблему, которую мы хотим избежать:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">100</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">setTimeout</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">i</span><span class="p">);</span>
+  <span class="p">},</span> <span class="mi">100</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;You might think this gets printed last.&#39;</span><span class="p">)</span></code></pre></div>
+
+<p>Скопируйте приведенный выше код в новый файл, который вы будете использовать для остальной части лабораторной работы. Файл должен быть с расширением .js</p>
+
+<p>Обратите внимание, что только значение `100` является терминальным условием выхода из цикла. Это связано с тем, то обратный вызов для <code>setTimeout</code> фактически не выполняется, пока цикл for не закончится. Любые другие операторы после цикла for так же будут выполняться перед любым обратным вызовом. Это потому, что узел является однопоточным. В цикле события не было возможности вызывать обратный вызов. В любом случае, все обратные вызовы запускаются с одинаковым значением - <code>i</code>.</p>
+
+<h2 id="a-solution">Решения</h2>
+
+<p>Как нам избежать этого? Введем замыкание. В JavaScript замыкание достигается за счет использование функций. Создав замыкание, чтобы зафиксировать значение <code>i</code> мы можем обеспечить правильное значение для каждой итерации цикла. При выполнении асинхронных операций в цикле обязательно фиксируйте переменные, которые вы собираетесь использовать.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">100</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+   <span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">i</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">setTimeout</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+         <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">i</span><span class="p">);</span>
+      <span class="p">},</span> <span class="mi">100</span><span class="p">);</span>
+   <span class="p">})(</span><span class="nx">i</span><span class="p">);</span> <span class="c1">// The current value of i is captured by self executing function</span>
+<span class="p">}</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;this still gets printed first.&#39;</span><span class="p">);</span></code></pre></div>
+
+<h4 id="a-note-about-scope-and-closures">Немного о замыкании и области видимости</h4>
+
+<p>JavaScript,в отличие от многих других языков, имеет только область видимости функции. Это значит, что переменные, объявленные в цикле for или блоке if, если он доступен вне скобок.</p>
+
+<h2 id="a-better-solution">Лучшее решение</h2>
+
+<p>Лучший способ избежать создания новой функции, используя каждую итерацию цикла:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">printNumberLater</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">i</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">setTimeout</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">i</span><span class="p">);</span>
+  <span class="p">},</span> <span class="mi">100</span><span class="p">);</span>
+<span class="p">};</span>
+
+<span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">100</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">printNumberLater</span><span class="p">(</span><span class="nx">i</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;this still gets printed first.&#39;</span><span class="p">)</span></code></pre></div>
+
+<h2 id="asynchronous-calls-in-parallel-and-then-joining-them">Параллельные ассинхронные вызовы и их объединения</h2>
+
+<p>Так, как мы можем вывести что-то после того, как работа цикла завершилась?</p>
+
+<p>Чаще всего возникает необходимость вызывать набор задач асинхронно, а затем запускать новый задачи после завершения:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">totalNumbersToPrint</span> <span class="o">=</span> <span class="mi">100</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">finishedCount</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+<span class="kd">var</span> <span class="nx">printNumberLater</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">i</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">setTimeout</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">i</span><span class="p">);</span>
+
+    <span class="nx">finishedCount</span><span class="o">++</span><span class="p">;</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="nx">finishedCount</span> <span class="o">===</span> <span class="nx">totalNumbersToPrint</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;this finally gets printed after all work is done!&#39;</span><span class="p">);</span>
+    <span class="p">}</span>
+  <span class="p">},</span> <span class="mi">100</span><span class="p">);</span>
+<span class="p">};</span>
+
+<span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">totalNumbersToPrint</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">printNumberLater</span><span class="p">(</span><span class="nx">i</span><span class="p">);</span>
+<span class="p">}</span></code></pre></div>
+
+<p>В примере выше, обратите внимание, что мы отслеживаем сколько раз вызываетсся <code>setTimeout</code>. Когда значения соответствует количевству вызовов, которые мы ожидаем, мы можем продолжить печатать наше сообщение. Очень хорошая библиотека, для решения этой проблемы <a href="https://www.npmjs.org/package/async">async</a>. Ниже приведен пример работы async, для улучшения вышенаписанного кода.</p>
+
+<p>Начните с совершенно нового каталога и установите модуль async.</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash">mkdir async-example
+<span class="nb">cd </span>async-example
+npm init /* use default settings */
+npm install async --save</code></pre></div>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">async</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;async&#39;</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">workToBeDone</span> <span class="o">=</span> <span class="p">[];</span>
+
+<span class="kd">var</span> <span class="nx">printNumberLater</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">i</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">setTimeout</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">i</span><span class="p">);</span>
+      <span class="nx">callback</span><span class="p">();</span>
+    <span class="p">},</span> <span class="mi">100</span><span class="p">);</span>
+  <span class="p">};</span>
+<span class="p">};</span>
+
+<span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">100</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">workToBeDone</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">printNumberLater</span><span class="p">(</span><span class="nx">i</span><span class="p">));</span>
+<span class="p">}</span>
+
+<span class="nx">async</span><span class="p">.</span><span class="nx">parallel</span><span class="p">(</span><span class="nx">workToBeDone</span><span class="p">,</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;this still gets printed last&#39;</span><span class="p">);</span>
+<span class="p">});</span></code></pre></div>
+
+<p>Представьте себе несколько дел, которые нужно выполнить параллельно. Помните как мы использовали счетчик <code>finishedCount</code> несколько примеров назад? Следить за всеми счетчиками в более сложных задачах может быть крайне сложно. Используя <code>async</code> мы можем избежать ненужных счетчиков и лучше организовать свой код. Другой шаблон для использования зовется <code>promises</code>.</p>
+
+<p>Установите <code>promise-extended</code> npm пакет с последующими командами: <code>npm install promise-extended</code>. Затем создайте новый файл, назовите <code>promises.js</code> с следующим содержанием:</p>
+
+<h2 id="promises">Обещания</h2>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">p</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;promise-extended&quot;</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">Promise</span> <span class="o">=</span> <span class="nx">p</span><span class="p">.</span><span class="nx">Promise</span><span class="p">;</span>
+
+<span class="kd">var</span> <span class="nx">operations</span> <span class="o">=</span> <span class="p">[];</span>
+
+<span class="kd">var</span> <span class="nx">printNumberLater</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">i</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">prom</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Promise</span><span class="p">();</span>
+
+  <span class="nx">setTimeout</span><span class="p">(</span><span class="kd">function</span> <span class="p">()</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">i</span><span class="p">);</span>
+    <span class="nx">prom</span><span class="p">.</span><span class="nx">callback</span><span class="p">();</span>
+  <span class="p">},</span> <span class="mi">100</span><span class="p">);</span>
+
+  <span class="k">return</span> <span class="nx">prom</span><span class="p">.</span><span class="nx">promise</span><span class="p">();</span> <span class="c1">//Возврат созданного обещания</span>
+<span class="p">};</span>
+
+<span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">100</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span>
+<span class="p">{</span>
+   <span class="nx">operations</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">printNumberLater</span><span class="p">(</span><span class="nx">i</span><span class="p">));</span>
+<span class="p">}</span>
+
+<span class="nx">p</span><span class="p">.</span><span class="nx">when</span><span class="p">(</span><span class="nx">operations</span><span class="p">).</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">bios</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;executed after all operations complete.&#39;</span><span class="p">);</span>
+<span class="p">});</span></code></pre></div>
+
+<h3 id="what-are-they">Что это такое?</h3>
+
+<p>Обещания - это абстракция, которая находится выше асинхронных действий, задавая конкретное значение для работы с этим представлением будущего значения.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">Promise</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;promise-extended&quot;</span><span class="p">).</span><span class="nx">Promise</span><span class="p">;</span>
+
+<span class="kd">function</span> <span class="nx">asyncAction</span><span class="p">(){</span>
+    <span class="kd">var</span> <span class="nx">p</span>  <span class="o">=</span> <span class="k">new</span> <span class="nx">Promise</span><span class="p">();</span>
+    <span class="nx">process</span><span class="p">.</span><span class="nx">nextTick</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+        <span class="nx">p</span><span class="p">.</span><span class="nx">callback</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+    <span class="p">});</span>
+    <span class="k">return</span> <span class="nx">p</span><span class="p">.</span><span class="nx">promise</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="nx">asyncAction</span><span class="p">().</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">res</span><span class="p">){</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">res</span><span class="p">);</span> <span class="c1">//1;</span>
+<span class="p">});</span></code></pre></div>
+
+<p>В приведенном выше примере у нас есть  <code>function</code> <code>asyncAction</code>, которые возвращают обещания, которые же будут разрешены в следующем цикле с <code>1</code>.</p>
+
+<h3 id="ok-so-what">Хорошо, что дальше?</h3>
+
+<p>Обещания - мощный инструмент, который помогает управлять несколькими асинхронными действиями или обеспечивают выполения действий в определенном порядке.</p>
+
+<p>Пример управления порядком выполнения</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">Promise</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;promise-extended&quot;</span><span class="p">).</span><span class="nx">Promise</span><span class="p">;</span>
+
+<span class="kd">var</span> <span class="nx">asyncCount</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+    <span class="kd">var</span> <span class="nx">currentCount</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">return</span> <span class="kd">function</span><span class="p">(){</span>
+        <span class="kd">var</span> <span class="nx">p</span>  <span class="o">=</span> <span class="k">new</span> <span class="nx">Promise</span><span class="p">();</span>
+        <span class="nx">process</span><span class="p">.</span><span class="nx">nextTick</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+            <span class="nx">p</span><span class="p">.</span><span class="nx">callback</span><span class="p">(</span><span class="o">++</span><span class="nx">currentCount</span><span class="p">);</span>
+        <span class="p">});</span>
+        <span class="k">return</span> <span class="nx">p</span><span class="p">.</span><span class="nx">promise</span><span class="p">();</span>
+    <span class="p">}</span>
+<span class="p">}());</span>
+
+<span class="nx">asyncCount</span><span class="p">()</span>
+    <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">currCount</span><span class="p">){</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">currCount</span><span class="p">);</span> <span class="c1">//1</span>
+
+        <span class="c1">//we return a promise from in here which will cause then to wait for this one to resolve.</span>
+        <span class="k">return</span> <span class="nx">asyncCount</span><span class="p">();</span>
+    <span class="p">})</span>
+    <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">currCount</span><span class="p">){</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">currCount</span><span class="p">);</span> <span class="c1">//2</span>
+
+        <span class="c1">//returning another promise!</span>
+        <span class="k">return</span> <span class="nx">asyncCount</span><span class="p">();</span>
+    <span class="p">})</span>
+    <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">count</span><span class="p">){</span>
+        <span class="c1">//now we have the result from the last asyncCount call which is 3</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">count</span><span class="p">);</span> <span class="c1">//3</span>
+    <span class="p">});</span></code></pre></div>
+
+<p>Пример одновременного управления несколькими асинхронными действиями. Установите модуль <code>promise-extended</code> nс последующими командой:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="nx">npm</span> <span class="nx">install</span> <span class="nx">promise</span><span class="o">-</span><span class="nx">extended</span> <span class="o">--</span><span class="nx">save</span></code></pre></div>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">p</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;promise-extended&quot;</span><span class="p">),</span>
+    <span class="nx">Promise</span> <span class="o">=</span> <span class="nx">p</span><span class="p">.</span><span class="nx">Promise</span><span class="p">;</span>
+
+<span class="kd">var</span> <span class="nx">asyncWait</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">timeout</span><span class="p">){</span>
+    <span class="kd">var</span> <span class="nx">ret</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Promise</span><span class="p">();</span>
+    <span class="nx">setTimeout</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+        <span class="nx">ret</span><span class="p">.</span><span class="nx">callback</span><span class="p">(</span><span class="nx">timeout</span><span class="p">);</span>
+    <span class="p">},</span> <span class="nx">timeout</span><span class="p">);</span>
+    <span class="k">return</span> <span class="nx">ret</span><span class="p">.</span><span class="nx">promise</span><span class="p">();</span>
+<span class="p">}</span>
+
+
+<span class="c1">//используем метод when, чтобы подождать, пока все действия выполнятся.</span>
+<span class="nx">p</span><span class="p">.</span><span class="nx">when</span><span class="p">(</span>
+    <span class="nx">asyncWait</span><span class="p">(</span><span class="mi">1000</span><span class="p">),</span>
+    <span class="nx">asyncWait</span><span class="p">(</span><span class="mi">900</span><span class="p">),</span>
+    <span class="nx">asyncWait</span><span class="p">(</span><span class="mi">800</span><span class="p">),</span>
+    <span class="nx">asyncWait</span><span class="p">(</span><span class="mi">700</span><span class="p">),</span>
+    <span class="nx">asyncWait</span><span class="p">(</span><span class="mi">600</span><span class="p">),</span>
+    <span class="nx">asyncWait</span><span class="p">(</span><span class="mi">500</span><span class="p">)</span>
+<span class="p">).</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">res</span><span class="p">){</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">res</span><span class="p">);</span> <span class="c1">//[1000,900,800,700,600,500];</span>
+<span class="p">});</span></code></pre></div>
+
+<p>В примере выше <code>when</code> возвращает обещание, ожидающие выполнения всех действий.</p>
+
+<h3 id="error-handling">Обработка ошибок.</h3>
+
+<p>Обработка ошибок с обещаниями намного проще, потому что вам не нужно беспокоится об этих ошибках, конечно, если ваш код не зависит напрямую от этого.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">asyncCount</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+    <span class="kd">var</span> <span class="nx">currentCount</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="k">return</span> <span class="kd">function</span><span class="p">(){</span>
+        <span class="kd">var</span> <span class="nx">p</span>  <span class="o">=</span> <span class="k">new</span> <span class="nx">Promise</span><span class="p">();</span>
+        <span class="nx">process</span><span class="p">.</span><span class="nx">nextTick</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+            <span class="nx">p</span><span class="p">.</span><span class="nx">callback</span><span class="p">(</span><span class="o">++</span><span class="nx">currentCount</span><span class="p">);</span>
+        <span class="p">});</span>
+        <span class="k">return</span> <span class="nx">p</span><span class="p">.</span><span class="nx">promise</span><span class="p">();</span>
+    <span class="p">}</span>
+<span class="p">}());</span>
+
+<span class="nx">asyncCount</span><span class="p">()</span>
+    <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">count</span><span class="p">){</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">count</span><span class="p">);</span> <span class="c1">//1</span>
+        <span class="k">return</span> <span class="nx">asyncCount</span><span class="p">();</span>
+    <span class="p">})</span>
+    <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+        <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">&quot;Oops an error occurred&quot;</span><span class="p">);</span>
+    <span class="p">})</span>
+    <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(){</span>
+       <span class="k">return</span> <span class="nx">asyncCount</span><span class="p">();</span>
+    <span class="p">})</span>
+    <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">res</span><span class="p">){</span><span class="cm">/*wont be called*/</span><span class="p">},</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">err</span><span class="p">){</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">err</span><span class="p">.</span><span class="nx">message</span><span class="p">);</span> <span class="c1">//Oops an error occurred ...</span>
+    <span class="p">})</span></code></pre></div>
+
+
+
+    <div id="next">
+      
+        <div class="continue">
+          <a href="npm.html">
+            <!-- Please don't just skip through these, actually do the labs! -->
+              Так держать! Продолжение в следующей лабораторной работе.
+            <span></span>
+          </a>
+        </div>
+      
+    </div>
+    <div id="footer">
+        <p>Labs created by <a href="https://twitter.com/joeandaverde">@joeandaverde</a></p>
+        <p>Учебный материал переведен <a href="https://t.me/Rat_Z">@Rat_Z</a> и <a href="https://t.me/Alex_Ebenrode">@Alex_Ebenrode</a></p>
+    </div>
+  </body>
+
+<!-- Mirrored from www.nodelabs.org/async.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 04 Sep 2017 18:01:56 GMT -->
+</html>

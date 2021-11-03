@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html>
+  
+<!-- Mirrored from www.nodelabs.org/http.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 04 Sep 2017 18:01:55 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=utf-8" /><!-- /Added by HTTrack -->
+<head>
+    <title>Создание HTTP сервера - Node Labs</title>
+    <link href="css/post.css" rel="stylesheet" type="text/css"/>
+    <link href="css/pygments.css" rel="stylesheet" type="text/css"/>
+    <link href='http://fonts.googleapis.com/css?family=Droid+Sans:400,700|Droid+Sans+Mono' rel='stylesheet' type='text/css' />
+
+    <script src="../ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  </head>
+  <body>
+
+    <div id="header">
+      <a href="index.html" title="Take me home!"><img src="css/img/logotype_dark.png" /></a>
+    </div>
+
+    <h1 id="creating_a_http_server">Создание HTTP Сервера</h1>
+
+<p>Теперь, когда вы поработали с загрузкой файлов с использованием HTTP, расмотрим использование <code>http</code>
+  модуля другим путем: для создания небольшого HTTP-сервера для обработки запросов и отображения простейших HTML
+  шаблонов.</p>
+
+<ul>
+  <li><a href="#using_the_http_module_to_listen_for_incoming_connections">Использование HTTP Модуля для прослушивания
+    входящих соединений</a></li>
+  <li><a href="#serving_static_content">Обработка статического контента</a></li>
+  <li><a href="#generating_dynamic_content_with_templates">Создание динамического содержимого с помощью шаблонов</a></li>
+</ul>
+
+<h2 id="using_the_http_module_to_listen_for_incoming_connections">Использование HTTP Модуля для прослушивания
+  входящих соединений</h2>
+
+<p>Создайте файл <code>server.js</code>.</p>
+
+<p>Импортируйте <code>http</code> модуль и используйте его, чтобы создать сервер:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">http</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;http&#39;</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">server</span> <span class="o">=</span> <span class="nx">http</span><span class="p">.</span><span class="nx">createServer</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// TODO</span>
+<span class="p">});</span></code></pre></div>
+
+<p>Функция обратного вызова <code>function (req, res) {}</code> передается в метод <code>createServer</code> и будет
+  вызываться при каждом обращении к серверу. Данный вызов принимает два аргумента, request (поток чтения, запрос) и
+  response (поток вывода, записи).</p>
+
+<p>Наш новый сервер еще не связан ни с одним портом и поэтому не может принимать входящие соединения. Чтобы связать
+  его с опрделенным портом, вызовите <code>server.listen(port)</code> функцию.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">http</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;http&#39;</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">server</span> <span class="o">=</span> <span class="nx">http</span><span class="p">.</span><span class="nx">createServer</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// TODO</span>
+<span class="p">});</span>
+
+<span class="nx">server</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">3000</span><span class="p">);</span></code></pre></div>
+
+<p>Теперь запустим наш сервер:</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>node server.js</code></pre></div>
+
+<p>Откройте ваш любой бразуер Google Chrome и перейдите по ссылке <a href="http://localhost:3000/">http://localhost
+    :3000</a>. Обратите внимание, что ваш браузер зависнет и, в конечном итоге, отключится. Это связано с тем,
+    что наш сервер еще не делает ничего полезного для входящего соединения.</p>
+
+<p>Для начала сделаем ответ на все запросы с кодом состояния 200. Этот HTTP код говорит, что «Всё OK».</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">http</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;http&#39;</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">server</span> <span class="o">=</span> <span class="nx">http</span><span class="p">.</span><span class="nx">createServer</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">res</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">=</span> <span class="mi">200</span><span class="p">;</span>
+  <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">();</span>
+<span class="p">});</span>
+
+<span class="nx">server</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">3000</span><span class="p">);</span></code></pre></div>
+
+<p>Перезагрузите сервер и обновите страницу <a href="http://localhost:3000/">http://localhost:3000</a> ещё раз.
+    Сейчас страница не содержит контент.</p>
+
+<p>Теперь давайте добавим некоторые данные, чтобы мы могли быть уверены, что мы действительно отправляем ответ.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">http</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;http&#39;</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">server</span> <span class="o">=</span> <span class="nx">http</span><span class="p">.</span><span class="nx">createServer</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">res</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">=</span> <span class="mi">200</span><span class="p">;</span>
+  <span class="nx">res</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span><span class="s1">&#39;Hello World!&#39;</span><span class="p">);</span>
+  <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">();</span>
+<span class="p">});</span>
+
+<span class="nx">server</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">3000</span><span class="p">);</span></code></pre></div>
+
+<h2 id="serving_static_content">Обработка статического контента</h2>
+
+<p>Импортируйте <code>fs</code> модуль для считывания файлов из файловой системы комьютера и отпрвки его в ваш браузер.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">fs</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;fs&#39;</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">http</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;http&#39;</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">server</span> <span class="o">=</span> <span class="nx">http</span><span class="p">.</span><span class="nx">createServer</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">res</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">=</span> <span class="mi">200</span><span class="p">;</span>
+
+  <span class="nx">fs</span><span class="p">.</span><span class="nx">readFile</span><span class="p">(</span><span class="s1">&#39;index.html&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">res</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span><span class="nx">data</span><span class="p">.</span><span class="nx">toString</span><span class="p">());</span>
+      <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">();</span>
+    <span class="p">}</span>
+  <span class="p">});</span>
+<span class="p">});</span>
+
+<span class="nx">server</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">3000</span><span class="p">);</span></code></pre></div>
+
+<p>Прежде чем перезапустить сервер, мы должны создать файл <code>index.html</code> :</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html"><span class="nt">&lt;html&gt;</span>
+  <span class="nt">&lt;head&gt;</span>
+    <span class="nt">&lt;title&gt;</span>My Node.js server<span class="nt">&lt;/title&gt;</span>
+  <span class="nt">&lt;/head&gt;</span>
+  <span class="nt">&lt;body&gt;</span>
+    <span class="nt">&lt;h1&gt;</span>Hello World!<span class="nt">&lt;/h1&gt;</span>
+  <span class="nt">&lt;/body&gt;</span>
+<span class="nt">&lt;/html&gt;</span></code></pre></div>
+
+<p>Давайте перезапустим сервер и проверим его работоспособность!</p>
+
+<div class="highlight"><pre><code class="language-bash" data-lang="bash"><span class="nv">$ </span>node server.js</code></pre></div>
+
+<h2 id="generating_dynamic_content_with_templates">Создание динамического содержимого с помощью шаблонов</h2>
+
+<p>Скучно обслуживать контент, который не меняется! Давайте создадим простой механизм шаблонов для обслуживания динамических представлений.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">templateEngine</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">template</span><span class="p">,</span> <span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">vars</span> <span class="o">=</span> <span class="nx">template</span><span class="p">.</span><span class="nx">match</span><span class="p">(</span><span class="sr">/\{\w+\}/g</span><span class="p">);</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">vars</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">template</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kd">var</span> <span class="nx">nonVars</span> <span class="o">=</span> <span class="nx">template</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="sr">/\{\w+\}/g</span><span class="p">);</span>
+  <span class="kd">var</span> <span class="nx">output</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">;</span>
+
+  <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">nonVars</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">output</span> <span class="o">+=</span> <span class="nx">nonVars</span><span class="p">[</span><span class="nx">i</span><span class="p">];</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">vars</span><span class="p">.</span><span class="nx">length</span><span class="p">)</span> <span class="p">{</span>
+      <span class="kd">var</span> <span class="nx">key</span> <span class="o">=</span> <span class="nx">vars</span><span class="p">[</span><span class="nx">i</span><span class="p">].</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/[\{\}]/g</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">);</span>
+      <span class="nx">output</span> <span class="o">+=</span> <span class="nx">data</span><span class="p">[</span><span class="nx">key</span><span class="p">];</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="k">return</span> <span class="nx">output</span><span class="p">;</span>
+<span class="p">};</span></code></pre></div>
+
+<p><code>templateEngine</code> подхватывает строку названия шаблона и объект данных и ищет шаблон <code>{variableName}</code>
+    затем заменяет совпадение данными <code>data.variableName</code>. Не стесняйтесь копировать / вставлять этот код,
+    если вы не нуждаетесь в
+         дополнительной
+         практике написания JavaScript кода и регулярных выражений.</p>
+
+<p>Давайте воспользуемся механизмом шаблонов для преобразования содержимого нашего <code>index.html</code> файла.</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">fs</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;fs&#39;</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">http</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;http&#39;</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">templateEngine</span> <span class="o">=</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">template</span><span class="p">,</span> <span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">vars</span> <span class="o">=</span> <span class="nx">template</span><span class="p">.</span><span class="nx">match</span><span class="p">(</span><span class="sr">/\{\w+\}/g</span><span class="p">);</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">vars</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">template</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="kd">var</span> <span class="nx">nonVars</span> <span class="o">=</span> <span class="nx">template</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="sr">/\{\w+\}/g</span><span class="p">);</span>
+  <span class="kd">var</span> <span class="nx">output</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">;</span>
+
+  <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">nonVars</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">output</span> <span class="o">+=</span> <span class="nx">nonVars</span><span class="p">[</span><span class="nx">i</span><span class="p">];</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">vars</span><span class="p">.</span><span class="nx">length</span><span class="p">)</span> <span class="p">{</span>
+      <span class="kd">var</span> <span class="nx">key</span> <span class="o">=</span> <span class="nx">vars</span><span class="p">[</span><span class="nx">i</span><span class="p">].</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/[\{\}]/g</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">);</span>
+      <span class="nx">output</span> <span class="o">+=</span> <span class="nx">data</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="k">return</span> <span class="nx">output</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="kd">var</span> <span class="nx">server</span> <span class="o">=</span> <span class="nx">http</span><span class="p">.</span><span class="nx">createServer</span><span class="p">(</span><span class="kd">function</span> <span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">res</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">=</span> <span class="mi">200</span><span class="p">;</span>
+  <span class="nx">res</span><span class="p">.</span><span class="nx">setHeader</span><span class="p">(</span><span class="s2">&quot;Content-Type&quot;</span><span class="p">,</span> <span class="s2">&quot;text/html&quot;</span><span class="p">);</span>
+
+  <span class="nx">fs</span><span class="p">.</span><span class="nx">readFile</span><span class="p">(</span><span class="s1">&#39;index.html&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">res</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span><span
+            class="nx">templateEngine</span><span class="p">(</span><span class="nx">data</span><span class="p">.
+    </span><span class="nx">toString</span><span class="p">(),</span> <span class="p">{}));</span> <span
+            class="c1">//использование механизма шаблонов</span>
+      <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">();</span>
+    <span class="p">}</span>
+  <span class="p">});</span>
+<span class="p">});</span>
+
+<span class="nx">server</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">3000</span><span class="p">);</span></code></pre></div>
+
+<p>Теперь обновите страничку в браузере. Вы заметите, что вывод одинаков. Давайте обновим <code>index.html</code> чтобы
+    использовать преимущества нашего механизма шаблонов.</p>
+
+<div class="highlight"><pre><code class="language-html" data-lang="html"><span class="nt">&lt;html&gt;</span>
+  <span class="nt">&lt;head&gt;</span>
+    <span class="nt">&lt;title&gt;</span>My Node.js server<span class="nt">&lt;/title&gt;</span>
+  <span class="nt">&lt;/head&gt;</span>
+  <span class="nt">&lt;body&gt;</span>
+    <span class="nt">&lt;h1&gt;</span>Hello {name}!<span class="nt">&lt;/h1&gt;</span>
+    <span class="nt">&lt;ul&gt;</span>
+      <span class="nt">&lt;li&gt;</span>Node Version: {node}<span class="nt">&lt;/li&gt;</span>
+      <span class="nt">&lt;li&gt;</span>V8 Version: {v8}<span class="nt">&lt;/li&gt;</span>
+      <span class="nt">&lt;li&gt;</span>URL: {url}<span class="nt">&lt;/li&gt;</span>
+      <span class="nt">&lt;li&gt;</span>Time: {time}<span class="nt">&lt;/li&gt;</span>
+    <span class="nt">&lt;/ul&gt;</span>
+  <span class="nt">&lt;/body&gt;</span>
+<span class="nt">&lt;/html&gt;</span></code></pre></div>
+
+<p>Вышеуказанные модификации используют несколько свойств из нашего объекта данных (name, node, v8, url, time).
+    Давайте их объявим:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="c1">// ... code omitted for brevity</span>
+<span class="nx">fs</span><span class="p">.</span><span class="nx">readFile</span><span class="p">(</span><span class="s1">&#39;index.html&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">res</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span><span class="nx">templateEngine</span><span class="p">(</span><span class="nx">data</span><span class="p">.</span><span class="nx">toString</span><span class="p">(),</span> <span class="p">{</span>
+       <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;Ryan Dahl&#39;</span><span class="p">,</span>
+       <span class="nx">node</span><span class="o">:</span> <span class="nx">process</span><span class="p">.</span><span class="nx">versions</span><span class="p">.</span><span class="nx">node</span><span class="p">,</span>
+       <span class="nx">v8</span><span class="o">:</span> <span class="nx">process</span><span class="p">.</span><span class="nx">versions</span><span class="p">.</span><span class="nx">v8</span><span class="p">,</span>
+       <span class="nx">time</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">(),</span>
+       <span class="nx">url</span><span class="o">:</span> <span class="nx">req</span><span class="p">.</span><span class="nx">url</span>
+    <span class="p">}));</span>
+    <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">();</span>
+  <span class="p">}</span>
+<span class="p">});</span>
+<span class="c1">// ... весь код опущен для краткости</span></code></pre></div>
+
+<h2 id="on-your-own">Самостоятельная работа</h2>
+
+<p>На данный момент мы нигде не писали какую-либо логику, которая возвращает разные данные в зависимости от пути запроса. Таким образом, наш простой HTTP-сервер отвечает на каждый путь одинаково. Например: <a href="http://localhost:3000/path/to/file/one">http://localhost:3000/path/to/file/one</a> и <a href="http://localhost:3000/path/to/file/two">http://localhost:3000/path/to/file/two</a>.
+    Поэкспериментируйте с <code>req.url</code> чтобы узнать, можете ли вы перенаправить запросы на основе запрошенного
+    ресурса. Для облегчения задачи необходимо воспользоваться модулем <a
+            href="http://nodejs.org/api/url.html">url
+    </a>.</p>
+
+<p>Вот пример использования данного модуля:</p>
+
+<div class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="o">&gt;</span> <span class="kd">var</span> <span class="nx">url</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;url&#39;</span><span class="p">)</span>
+<span class="kc">undefined</span>
+<span class="o">&gt;</span> <span class="nx">url</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="s1">&#39;http://localhost:3000/path/to/file?q=1&#39;</span><span class="p">)</span>
+<span class="p">{</span> <span class="nx">protocol</span><span class="o">:</span> <span class="s1">&#39;http:&#39;</span><span class="p">,</span>
+  <span class="nx">slashes</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+  <span class="nx">auth</span><span class="o">:</span> <span class="kc">null</span><span class="p">,</span>
+  <span class="nx">host</span><span class="o">:</span> <span class="s1">&#39;localhost:3000&#39;</span><span class="p">,</span>
+  <span class="nx">port</span><span class="o">:</span> <span class="s1">&#39;3000&#39;</span><span class="p">,</span>
+  <span class="nx">hostname</span><span class="o">:</span> <span class="s1">&#39;localhost&#39;</span><span class="p">,</span>
+  <span class="nx">hash</span><span class="o">:</span> <span class="kc">null</span><span class="p">,</span>
+  <span class="nx">search</span><span class="o">:</span> <span class="s1">&#39;?q=1&#39;</span><span class="p">,</span>
+  <span class="nx">query</span><span class="o">:</span> <span class="s1">&#39;q=1&#39;</span><span class="p">,</span>
+  <span class="nx">pathname</span><span class="o">:</span> <span class="s1">&#39;/path/to/file&#39;</span><span class="p">,</span>
+  <span class="nx">path</span><span class="o">:</span> <span class="s1">&#39;/path/to/file?q=1&#39;</span><span class="p">,</span>
+  <span class="nx">href</span><span class="o">:</span> <span class="s1">&#39;http://localhost:3000/path/to/file?q=1&#39;</span> <span class="p">}</span></code></pre></div>
+
+
+    <div id="next">
+      
+        <div class="continue">
+          <a href="async.html">
+            <!-- Please don't just skip through these, actually do the labs! -->
+              Так держать! Перейдите к следующей ЛР.
+            <span>Асинхронное взаимодействие в Node.js</span>
+          </a>
+        </div>
+      
+    </div>
+    <div id="footer">
+      <p>Labs created by <a href="https://twitter.com/joeandaverde">@joeandaverde</a></p>
+      <p>Учебный материал переведен <a href="https://t.me/Rat_Z">@Rat_Z</a> и <a href="https://t.me/Alex_Ebenrode">@Alex_Ebenrode</a></p>
+    </div>
+  </body>
+
+<!-- Mirrored from www.nodelabs.org/http.html by HTTrack Website Copier/3.x [XR&CO'2014], Mon, 04 Sep 2017 18:01:55 GMT -->
+</html>
